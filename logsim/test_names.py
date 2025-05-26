@@ -22,7 +22,22 @@ def used_names(name_string_list):
     (["Alice", "Bob", "Eve"], [0, 1, 2]),
     (["Charlie", "Dave"], [3, 4]),
     (["Alice", "Charlie", "Dave"], [0, 3, 4]),
+    ([], []),
+    (["Charlie", "David"], [3, 4])
 ])
 def test_lookup(used_names, input_lists, expected_ids):
     """Test if lookup returns the expected IDs."""
     assert expected_ids == used_names.lookup(input_lists)
+
+@pytest.mark.parametrize("name_id, expected_string", [
+    (0, "Alice"),
+    (1, "Bob"),
+    (2, "Eve"),
+    (3, None)
+])
+def test_get__name_string(used_names, new_names, name_id, expected_string):
+    """Test if get_name_string returns the expected string."""
+    # Name is present
+    assert used_names.get_name_string(name_id) == expected_string
+    # Name is absent
+    assert new_names.get_name_string(name_id) is None
