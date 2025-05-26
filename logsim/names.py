@@ -56,9 +56,15 @@ class Names:
         If the name string is present in the names list, return its index
         If the name string is not present in the names list, return None.
         """
+        if not isinstance(name_string, str):
+            raise TypeError("Expected name_string to be a string.")
+        if name_string == "":
+            raise ValueError("Empty name string is not allowed.")
+        if name_string not in self.names:
+            # If the name string is already present, return its index
+            raise ValueError("Name string not found in names list.")
+        
         return self.names.index(name_string) if name_string in self.names else None
-
-
 
     def lookup(self, name_string_list):
         """Return a list of name IDs for each name string in name_string_list.
