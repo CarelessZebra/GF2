@@ -75,8 +75,8 @@ class Scanner:
             name += self.current_char
             self.current_char = self.file.read(1)
         return name
-    
-    def get_numebr(self):
+   
+    def get_number(self):
         """Read a sequence of digits and return it as an integer."""
         number = ''
         while self.current_char.isdigit():
@@ -87,6 +87,8 @@ class Scanner:
     def advance(self):
         """Advance to the next character in the file."""
         self.current_char = self.file.read(1)
+
+    
     
     def get_symbol(self):
         """Translate the next sequence of characters into a symbol."""
@@ -108,7 +110,7 @@ class Scanner:
         elif self.current_char.isdigit():
             # Read a number and set the symbol type to NUMBER
             symbol.type = self.NUMBER
-            symbol.id = self.get_numebr()
+            symbol.id = self.get_number()
         elif self.current_char == ',':
             symbol.type = self.COMMA
             self.advance()
