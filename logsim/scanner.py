@@ -53,9 +53,9 @@ class Scanner:
 
     def __init__(self, path, names):
         """Open specified file and initialise reserved words and IDs."""
-        self.current_char = None
+        
         self.file = open(path, 'r')
-
+        self.current_char = self.file.read(1) #Might be neater to do this in get_symbol
         self.names = names
         self.symbol_type_list = [self.COMMA, self.SEMICOLON, self.EQUALS, self.KEYWORD, self.NUMBER, self.NAME, self.EOF, self.ARROW, self.FULLSTOP] = range(9)
         #I'm not sure if this is every keyword defined in the grammar. 
@@ -83,6 +83,7 @@ class Scanner:
                     line += 1
                     column = 0
                     self.current_char = self.file.read(1)
+                    break
 
         # skip multi-line comments
         elif self.current_char == '/':
@@ -104,10 +105,8 @@ class Scanner:
                         # now consume the char *after* the slash so current_char is next real input
                         self.current_char = self.file.read(1)
                         break
-
-                    
                     prev = self.current_char
-
+        print(self.current_char)
         return line, column
 
     def get_name(self):

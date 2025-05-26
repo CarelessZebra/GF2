@@ -42,10 +42,7 @@ def test_advance_and_current_char(tmp_file):
     content = "ABC"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    # Initially cur
-    # rent_char is None
-    assert scanner.current_char is None
-    scanner.advance()
+    
     assert scanner.current_char == 'A'
     scanner.advance()
     assert scanner.current_char == 'B'
@@ -59,7 +56,6 @@ def test_skip_whitespace_spaces(tmp_file):
     content = "   X"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    scanner.advance()  # read first space
     line, column = 1, 0
     new_line, new_column = scanner.skip_whitespace(line, column)
     # Should skip all spaces and stop at 'X'
@@ -71,7 +67,6 @@ def test_skip_whitespace_newlines(tmp_file):
     content = "\n\nX"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    scanner.advance()  # first newline
     line, column = 1, 0
     new_line, new_column = scanner.skip_whitespace(line, column)
     # Two newlines encountered, line should increment twice
@@ -84,7 +79,6 @@ def test_skip_comments_single_line(tmp_file):
     content = "# comment line\nX"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    scanner.advance()  # '#'
     line, column = 1, 0
     new_line, new_column = scanner.skip_comments(line, column)
     
@@ -96,7 +90,6 @@ def test_skip_comments_multi_line(tmp_file):
     content = "/* comment */X"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    scanner.advance()  # '/'
     line, column = 1, 0
     new_line, new_column = scanner.skip_comments(line, column)
     # Should stop at character after '*/'
@@ -108,7 +101,7 @@ def test_get_name(tmp_file):
     path = tmp_file(content)
     scanner = Scanner(path, Names())
     # Prime current_char at first char of name
-    scanner.current_char = scanner.file.read(1)
+
     name = scanner.get_name()
     assert name == 'abc123_'
     # After name, current_char should be space
@@ -118,7 +111,6 @@ def test_get_number(tmp_file):
     content = "12345 rest"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    scanner.current_char = scanner.file.read(1)
     number = scanner.get_number()
     assert number == 12345
     # After number, current_char should be space
