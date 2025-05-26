@@ -10,7 +10,6 @@ Names - maps variable names and string names to unique integers.
 
 
 class Names:
-
     """Map variable names and string names to unique integers.
 
     This class deals with storing grammatical keywords and user-defined words,
@@ -45,6 +44,7 @@ class Names:
 
     def unique_error_codes(self, num_error_codes):
         """Return a list of unique integer error codes."""
+        # Maybe a value error should be raised if num_error_codes is negative?
         if not isinstance(num_error_codes, int):
             raise TypeError("Expected num_error_codes to be an integer.")
         self.error_code_count += num_error_codes
@@ -52,7 +52,9 @@ class Names:
                      self.error_code_count)
 
     def query(self, name_string):
-        """Return the corresponding name ID for name_string.
+        """
+        Return the corresponding name ID for name_string.
+
         If the name string is present in the names list, return its index
         If the name string is not present in the names list, return None.
         """
@@ -60,8 +62,9 @@ class Names:
             raise TypeError("Expected name_string to be a string.")
         if name_string == "":
             raise ValueError("Empty name string is not allowed.")
-                
-        return self.names.index(name_string) if name_string in self.names else None
+        if name_string in self.names:
+            return self.names.index(name_string)
+        return None
 
     def lookup(self, name_string_list):
         """Return a list of name IDs for each name string in name_string_list.
@@ -77,7 +80,7 @@ class Names:
             if name_string not in self.names:
                 self.names.append(name_string)
             name_ids.append(self.names.index(name_string))
-        return name_ids        
+        return name_ids
 
     def get_name_string(self, name_id):
         """Return the corresponding name string for name_id.
@@ -88,5 +91,4 @@ class Names:
             raise TypeError("Expected name_id to be an integer.")
         if 0 <= name_id < len(self.names):
             return self.names[name_id]
-        return None 
-    
+        return None
