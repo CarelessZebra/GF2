@@ -60,7 +60,7 @@ class Scanner:
         self.symbol_type_list = [self.COMMA, self.SEMICOLON, self.EQUALS, self.KEYWORD, self.NUMBER, self.NAME, self.EOF, self.ARROW, self.FULLSTOP] = range(9)
         #I'm not sure if this is every keyword defined in the grammar. 
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR", "AND", "OR", "NAND", "XOR", "DTYPE", "CLK"]
-        [self.DEVICES, self.CONNECTIONS, self.MONITOR, self.AND, self.OR, self.NAND, self.XOR, self.DTPE, self.CLK] = self.names.lookup(self.keywords_list)
+        [self.DEVICES, self.CONNECTIONS, self.MONITOR, self.AND, self.OR, self.NAND, self.XOR, self.DTYPE, self.CLK] = self.names.lookup(self.keywords_list)
     
     def skip_whitespace(self, line, column):
         """Skip whitespace characters in the file."""
