@@ -1,0 +1,37 @@
+# Full Adder Circuit 
+
+DEVICES {
+    A, B, C              = 0, 0, 0;
+    AND1, AND2, AND3     = AND(2);
+    XOR1, XOR2           = XOR;
+    OR                   = OR(3);
+}
+
+CONNECTIONS {
+    A -> AND1.I1;
+    B -> AND1.I2;
+
+    A -> AND2.I1;
+    C -> AND2.I2;
+\end{verbatim}
+
+\columnbreak
+
+\begin{verbatim}
+    B -> AND3.I1;
+    C -> AND3.I2;
+
+    A -> XOR1.I1;
+    B -> XOR1.I2;
+
+    XOR1 -> XOR2.I1;
+    C   -> XOR2.I2;
+
+    AND1 -> OR.I1;
+    AND2 -> OR.I2;
+    AND3 -> OR.I3;
+}
+
+MONITOR {
+    XOR2, OR;
+}
