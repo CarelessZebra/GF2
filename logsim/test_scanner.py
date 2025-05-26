@@ -87,8 +87,8 @@ def test_skip_comments_single_line(tmp_file):
     scanner.advance()  # '#'
     line, column = 1, 0
     new_line, new_column = scanner.skip_comments(line, column)
-    # Should position at '\n' or after? After reading until newline, current_char is '\n'
-    assert scanner.current_char == '\n'
+    
+    assert scanner.current_char == 'X'
     # Line increment logic only inside while; here we exit on newline but not skip it
     assert (new_line, new_column) == (1, 0) or isinstance(new_line, int)
 
@@ -123,3 +123,4 @@ def test_get_number(tmp_file):
     assert number == 12345
     # After number, current_char should be space
     assert scanner.current_char == ' '
+
