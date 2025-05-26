@@ -57,16 +57,44 @@ class Scanner:
         self.file = open(path, 'r')
 
         self.names = names
-        self.symbol_type_list = [self.COMMA, self.SEMICOLON, self.EQUALS, self.KEYWORD, self.NUMBER, self.NAME, self.EOF, self.ARROW] = range(7)
+        self.symbol_type_list = [self.COMMA, self.SEMICOLON, self.EQUALS, self.KEYWORD, self.NUMBER, self.NAME, self.EOF, self.ARROW, self.FULLSTOP] = range(8)
         #I'm not sure if this is every keyword defined in the grammar. 
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR", "AND", "OR", "NAND", "XOR", "DTYPE", "CLK"]
         [self.DEVICES, self.CONNECTIONS, self.MONITOR, self.AND, self.OR, self.NAND, self.XOR, self.DTPE, self.CLK] = self.names.lookup(self.keywords_list)
     
-    def skip_whitespace(self):
+    def skip_whitespace(self, line, column):
         """Skip whitespace characters in the file."""
-        self.current_char = self.file.read(1)
-        while self.current_char.isspace():
+        # Skip whitespace characters
+        while self.current_char.isspace() or self.current_char == '\n':
+            # If we encounter a newline, reset the line and column counters
+            if self.current_char == '\n':
+                line += 1
+                column = 0
             self.current_char = self.file.read(1)
+        return line, column
+
+    def skip_comments(self, line, column):
+        """Skip comments in the file."""
+
+        # skip single line comments
+        if self.current_char == '#':
+            while self.current_char != '\n' and self.current_char != '':
+                if self.current_char == '\n':
+                    line += 1
+                    column = 0
+                self.current_char = self.file.read(1)
+        # skip multi-line comments
+        elif self.current_char == '/':
+            next_char = self.file.read(1)
+            if next_char == '*':
+                while True:
+                    self.current_char = self.file.read(1)
+                    if self.current_char == '\n':
+                        line += 1
+                        column = 0
+                    elif self.current_char == '' or (self.current_char == '*' and self.file.read(1) == '/'):
+                        break
+        return line, column
 
     def get_name(self):
         """Read a sequence of characters and return it as a string."""
@@ -90,12 +118,15 @@ class Scanner:
 
     
     
-    def get_symbol(self):
+    def get_symbol(self, line, column):
         """Translate the next sequence of characters into a symbol."""
         #WON'T WORK TILL NAMES IS IMPLEMENTED
         symbol = Symbol()
         #skip whitespace before reading the next character
-        self.skip_whitespace()
+        line, column = self.skip_whitespace(line, column)
+        line, column = self.skip_comments(line, column)
+        line, column = self.skip_whitespace(line, column)
+
         if self.current_char == '':
             # End of file
             symbol.type = self.EOF
@@ -132,7 +163,10 @@ class Scanner:
                 pass
         else:
             self.advance()
-        return symbol
+
+        symbol.line = line
+        symbol.column = column
+        return symbol, line, column
         
 
 
