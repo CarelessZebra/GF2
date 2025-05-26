@@ -75,25 +75,38 @@ class Scanner:
 
     def skip_comments(self, line, column):
         """Skip comments in the file."""
-
         # skip single line comments
         if self.current_char == '#':
-            while self.current_char != '\n' and self.current_char != '':
+            while self.current_char not in ('\n', ''):
+                self.current_char = self.file.read(1)
                 if self.current_char == '\n':
                     line += 1
                     column = 0
-                self.current_char = self.file.read(1)
+
         # skip multi-line comments
         elif self.current_char == '/':
             next_char = self.file.read(1)
             if next_char == '*':
+                prev = None
+                # consume until we see '*' followed by '/'
                 while True:
                     self.current_char = self.file.read(1)
+                    if self.current_char == '':
+                        # EOF reached without closing comment
+                        break
+                    # track newlines
                     if self.current_char == '\n':
                         line += 1
                         column = 0
-                    elif self.current_char == '' or (self.current_char == '*' and self.file.read(1) == '/'):
+                    # if previous was '*' and we just saw '/', comment is closed
+                    if prev == '*' and self.current_char == '/':
+                        # now consume the char *after* the slash so current_char is next real input
+                        self.current_char = self.file.read(1)
                         break
+
+                    
+                    prev = self.current_char
+
         return line, column
 
     def get_name(self):
