@@ -11,7 +11,6 @@ Symbol - encapsulates a symbol and stores its properties.
 
 
 class Symbol:
-
     """Encapsulate a symbol and store its properties.
 
     Parameters
@@ -32,7 +31,6 @@ class Symbol:
 
 
 class Scanner:
-
     """Read circuit definition file and translate the characters into symbols.
 
     Once supplied with the path to a valid definition file, the scanner
@@ -53,15 +51,21 @@ class Scanner:
 
     def __init__(self, path, names):
         """Open specified file and initialise reserved words and IDs."""
-        
-        self.file = open(path, 'r')
-        self.current_char = self.file.read(1) #Might be neater to do this in get_symbol
+        self.file = open(path, 'r', encoding='utf-8')
+        self.current_char = self.file.read(1)
         self.names = names
-        self.symbol_type_list = [self.COMMA, self.SEMICOLON, self.EQUALS, self.KEYWORD, self.NUMBER, self.NAME, self.EOF, self.ARROW, self.FULLSTOP] = range(9)
-        #I'm not sure if this is every keyword defined in the grammar. 
-        self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR", "AND", "OR", "NAND", "XOR", "DTYPE", "CLK"]
-        [self.DEVICES, self.CONNECTIONS, self.MONITOR, self.AND, self.OR, self.NAND, self.XOR, self.DTYPE, self.CLK] = self.names.lookup(self.keywords_list)
-    
+        self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
+                                 self.COMMA,  self.NUMBER, self.NAME, self.EOF,
+                                 self.ARROW, self.FULLSTOP] = range(9)
+
+        self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
+                              "AND", "OR", "NAND", "XOR", "DTYPE",
+                              "CLOCK", "SWITCH"]
+
+        [self.DEVICES, self.CONNECTIONS, self.MONITOR,
+         self.AND, self.OR, self.NAND, self.XOR, self.DTYPE,
+         self.CLOCK, self.SWITCH] = self.names.lookup(self.keywords_list)
+
     def skip_whitespace(self, line, column):
         """Skip whitespace characters in the file."""
         # Skip whitespace characters
@@ -100,9 +104,9 @@ class Scanner:
                     if self.current_char == '\n':
                         line += 1
                         column = 0
-                    # if previous was '*' and we just saw '/', comment is closed
+                    # if previous was '*' and current is '/', comment is closed
                     if prev == '*' and self.current_char == '/':
-                        # now consume the char *after* the slash so current_char is next real input
+                        # set current_char to the next character after '/'
                         self.current_char = self.file.read(1)
                         break
                     prev = self.current_char
@@ -116,7 +120,7 @@ class Scanner:
             name += self.current_char
             self.current_char = self.file.read(1)
         return name
-   
+
     def get_number(self):
         """Read a sequence of digits and return it as an integer."""
         number = ''
@@ -129,13 +133,10 @@ class Scanner:
         """Advance to the next character in the file."""
         self.current_char = self.file.read(1)
 
-    
-    
     def get_symbol(self, line, column):
         """Translate the next sequence of characters into a symbol."""
-        #WON'T WORK TILL NAMES IS IMPLEMENTED
         symbol = Symbol()
-        #skip whitespace before reading the next character
+        # skip whitespace and comments before reading the next character
         line, column = self.skip_whitespace(line, column)
         line, column = self.skip_comments(line, column)
         line, column = self.skip_whitespace(line, column)
@@ -145,7 +146,7 @@ class Scanner:
             symbol.type = self.EOF
         elif self.current_char.isalpha():
             name_string = self.get_name()
-            #check if the name is a keyword or an identifier
+            # check if the name is a keyword or an identifier
             if name_string in self.keywords_list:
                 symbol.type = self.KEYWORD
             else:
@@ -165,14 +166,12 @@ class Scanner:
             symbol.type = self.EQUALS
             self.advance()
         elif self.current_char == '-':
-            #I can't test properly until the names module is implemented but expected
-            # behaviour is that if you have -DEVICES then it will have - as a None symbol
-            # and DEVICES treated properly as a keyword, and -> is treated as an arrow.
             self.advance()
             if self.current_char == '>':
                 symbol.type = self.ARROW
                 self.advance()
             else:
+                # symbol type is None in the case of just '-'
                 pass
         else:
             self.advance()
@@ -180,8 +179,3 @@ class Scanner:
         symbol.line = line
         symbol.column = column
         return symbol, line, column
-        
-
-
-
-        
