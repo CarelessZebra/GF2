@@ -60,10 +60,7 @@ class Names:
             raise TypeError("Expected name_string to be a string.")
         if name_string == "":
             raise ValueError("Empty name string is not allowed.")
-        if name_string not in self.names:
-            # If the name string is already present, return its index
-            raise ValueError("Name string not found in names list.")
-        
+                
         return self.names.index(name_string) if name_string in self.names else None
 
     def lookup(self, name_string_list):
