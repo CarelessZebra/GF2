@@ -20,7 +20,7 @@ def scanner_file():
 import pytest
 import os
 from scanner import Scanner, Symbol
-from names import MyNames
+from names import Names
 
 # Helper to create a temporary file with given content
 @pytest.fixture
@@ -41,7 +41,7 @@ def test_symbol_initialization():
 def test_advance_and_current_char(tmp_file):
     content = "ABC"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     # Initially cur
     # rent_char is None
     assert scanner.current_char is None
@@ -58,7 +58,7 @@ def test_advance_and_current_char(tmp_file):
 def test_skip_whitespace_spaces(tmp_file):
     content = "   X"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     scanner.advance()  # read first space
     line, column = 1, 0
     new_line, new_column = scanner.skip_whitespace(line, column)
@@ -70,7 +70,7 @@ def test_skip_whitespace_spaces(tmp_file):
 def test_skip_whitespace_newlines(tmp_file):
     content = "\n\nX"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     scanner.advance()  # first newline
     line, column = 1, 0
     new_line, new_column = scanner.skip_whitespace(line, column)
@@ -83,7 +83,7 @@ def test_skip_whitespace_newlines(tmp_file):
 def test_skip_comments_single_line(tmp_file):
     content = "# comment line\nX"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     scanner.advance()  # '#'
     line, column = 1, 0
     new_line, new_column = scanner.skip_comments(line, column)
@@ -95,7 +95,7 @@ def test_skip_comments_single_line(tmp_file):
 def test_skip_comments_multi_line(tmp_file):
     content = "/* comment */X"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     scanner.advance()  # '/'
     line, column = 1, 0
     new_line, new_column = scanner.skip_comments(line, column)
@@ -106,7 +106,7 @@ def test_skip_comments_multi_line(tmp_file):
 def test_get_name(tmp_file):
     content = "abc123_ XYZ"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     # Prime current_char at first char of name
     scanner.current_char = scanner.file.read(1)
     name = scanner.get_name()
@@ -117,7 +117,7 @@ def test_get_name(tmp_file):
 def test_get_number(tmp_file):
     content = "12345 rest"
     path = tmp_file(content)
-    scanner = Scanner(path, MyNames())
+    scanner = Scanner(path, Names())
     scanner.current_char = scanner.file.read(1)
     number = scanner.get_number()
     assert number == 12345
