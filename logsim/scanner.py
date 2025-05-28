@@ -179,3 +179,18 @@ class Scanner:
         symbol.line = line
         symbol.column = column
         return symbol, line, column
+
+
+def print_error_line(line, error_pos):
+    """
+    Print the line with a caret (^) underneath the character at error_pos.
+    
+    Args:
+        line (str): The line of input text.
+        error_pos (int): The index in the line where the error occurred.
+    """
+    print(line.rstrip())
+    if 0 <= error_pos < len(line):
+        print(" " * error_pos + "^")
+    else:
+        print(" " * len(line.rstrip()) + "^ (error position out of bounds)")
