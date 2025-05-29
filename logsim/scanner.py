@@ -113,25 +113,28 @@ class Scanner:
         print(self.current_char)
         return line, column
 
-    def get_name(self):
+    def get_name(self, column):
         """Read a sequence of characters and return it as a string."""
         name = ''
         while self.current_char.isalnum() or self.current_char == '_':
             name += self.current_char
+            column += 1
             self.current_char = self.file.read(1)
-        return name
+        return name, column
 
-    def get_number(self):
+    def get_number(self, column):
         """Read a sequence of digits and return it as an integer."""
         number = ''
         while self.current_char.isdigit():
             number += self.current_char
+            column += 1
             self.current_char = self.file.read(1)
-        return int(number)
+        return int(number), column
 
-    def advance(self):
+    def advance(self, column):
         """Advance to the next character in the file."""
         self.current_char = self.file.read(1)
+        return column + 1
 
     def get_symbol(self, line, column):
         """Translate the next sequence of characters into a symbol."""
@@ -145,7 +148,7 @@ class Scanner:
             # End of file
             symbol.type = self.EOF
         elif self.current_char.isalpha():
-            name_string = self.get_name()
+            name_string, column = self.get_name(column)
             # check if the name is a keyword or an identifier
             if name_string in self.keywords_list:
                 symbol.type = self.KEYWORD
@@ -155,38 +158,38 @@ class Scanner:
         elif self.current_char.isdigit():
             # Read a number and set the symbol type to NUMBER
             symbol.type = self.NUMBER
-            symbol.id = self.get_number()
+            symbol.id, column = self.get_number(column)
         elif self.current_char == ',':
             symbol.type = self.COMMA
-            self.advance()
+            column = self.advance(column)
         elif self.current_char == ';':
             symbol.type = self.SEMICOLON
-            self.advance()
+            column = self.advance(column)
         elif self.current_char == '=':
             symbol.type = self.EQUALS
-            self.advance()
+            self.advance(column)
         elif self.current_char == '{':
             symbol.type = self.OPENCURLY
-            self.advance()
+            self.advance(column)
         elif self.current_char == '}':
             symbol.type = self.CLOSECURLY
         elif self.current_char == '-':
-            self.advance()
+            column = self.advance(column)
             if self.current_char == '>':
                 symbol.type = self.ARROW
-                self.advance()
+                column = self.advance(column)
             else:
                 # symbol type is None in the case of just '-'
                 pass
         else:
-            self.advance()
+            column = self.advance(column)
 
         symbol.line = line
         symbol.column = column
         return symbol, line, column
 
 
-    def print_error_line(self, line, error_pos):
+    def print_error_line(self, line, column):
         """
         Print the line with a caret (^) underneath the character at error_pos.
         
@@ -195,7 +198,7 @@ class Scanner:
             error_pos (int): The index in the line where the error occurred.
         """
         print(line.rstrip())
-        if 0 <= error_pos < len(line):
-            print(" " * error_pos + "^")
+        if 0 <= column < len(line):
+            print(" " * column + "^")
         else:
             print(" " * len(line.rstrip()) + "^ (error position out of bounds)")
