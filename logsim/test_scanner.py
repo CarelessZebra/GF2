@@ -119,6 +119,7 @@ def test_get_number(tmp_file):
 
 # need to finish parser first
 # Test for print_error_line
+"""
 def test_print_error_line(tmp_file, capsys):
     content = "error line"
     path = tmp_file(content)
@@ -130,3 +131,29 @@ def test_print_error_line(tmp_file, capsys):
     captured = capsys.readouterr()
     assert "Error at line 1, column 5: Test error" in captured.out
     assert "error line" in captured.out
+"""
+
+def test_get_symbol():
+    scanner = Scanner("test_full_adder.txt", Names())
+    line = 1
+    col = 0
+    symbol, line, col =  scanner.get_symbol(line, col)
+    assert symbol.id == scanner.DEVICES
+    assert symbol.type == scanner.KEYWORD
+    assert symbol.line == 3
+    #assert symbol.column == 0
+    symbol, line, col =  scanner.get_symbol(3, 0)
+    assert symbol.id == None
+    assert symbol.type == scanner.OPENCURLY
+    assert symbol.line == 3
+    #assert symbol.column == 4
+    symbol, line, col =  scanner.get_symbol(3, 0)
+    assert symbol.id == 10
+    assert symbol.type == scanner.NAME
+    assert symbol.line == 4
+    #assert symbol.column == 8
+    symbol, line, col =  scanner.get_symbol(4, 0)
+    assert symbol.id == None
+    assert symbol.type == scanner.COMMA
+    assert symbol.line == 4
+    #assert symbol.column == 5

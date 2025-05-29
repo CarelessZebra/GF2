@@ -56,7 +56,7 @@ class Scanner:
         self.names = names
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
                                  self.COMMA,  self.NUMBER, self.NAME, self.EOF,
-                                 self.ARROW, self.FULLSTOP] = range(9)
+                                 self.ARROW, self.FULLSTOP, self.OPENCURLY, self.CLOSECURLY] = range(11)
 
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
                               "AND", "OR", "NAND", "XOR", "DTYPE",
@@ -150,7 +150,7 @@ class Scanner:
             if name_string in self.keywords_list:
                 symbol.type = self.KEYWORD
             else:
-                symbol.type = self.IDENTIFIER
+                symbol.type = self.NAME
             [symbol.id] = self.names.lookup([name_string])
         elif self.current_char.isdigit():
             # Read a number and set the symbol type to NUMBER
@@ -165,6 +165,11 @@ class Scanner:
         elif self.current_char == '=':
             symbol.type = self.EQUALS
             self.advance()
+        elif self.current_char == '{':
+            symbol.type = self.OPENCURLY
+            self.advance()
+        elif self.current_char == '}':
+            symbol.type = self.CLOSECURLY
         elif self.current_char == '-':
             self.advance()
             if self.current_char == '>':

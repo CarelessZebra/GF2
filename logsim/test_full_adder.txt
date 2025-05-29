@@ -13,11 +13,7 @@ CONNECTIONS {
 
     A -> AND2.I1;
     C -> AND2.I2;
-\end{verbatim}
 
-\columnbreak
-
-\begin{verbatim}
     B -> AND3.I1;
     C -> AND3.I2;
 
