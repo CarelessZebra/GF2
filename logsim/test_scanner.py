@@ -116,21 +116,23 @@ def test_get_number(tmp_file):
     assert scanner.current_char == ' '
 
 
-# need to finish parser first
+
 # Test for print_error_line
-"""
-def test_print_error_line(tmp_file, capsys):
-    content = "error line"
-    path = tmp_file(content)
-    scanner = Scanner(path, Names())
-    
-    # Simulate an error
-    scanner.print_error_line(1, 5, "Test error")
-    
-    captured = capsys.readouterr()
-    assert "Error at line 1, column 5: Test error" in captured.out
-    assert "error line" in captured.out
-"""
+def test_print_error_line(capsys):
+    scanner = Scanner("test_full_adder.txt", Names())
+    line = 11
+    col = 4
+    scanner.print_error_line(line,col)
+    captout, capterror = capsys.readouterr()
+    assert captout == "    A -> AND1.I1;\n    ^\n"
+
+def test_print_error_line_out_of_bounds(capsys):
+    scanner = Scanner("test_full_adder.txt", Names())
+    line = 11
+    col = 20
+    scanner.print_error_line(line,col)
+    captout, capterror = capsys.readouterr()
+    assert captout == "    A -> AND1.I1;\n                 ^ (error position out of bounds)\n"
 
 def test_get_symbol():
     scanner = Scanner("test_full_adder.txt", Names())
