@@ -169,12 +169,13 @@ class Scanner:
             column = self.advance(column)
         elif self.current_char == '=':
             symbol.type = self.EQUALS
-            self.advance(column)
+            column = self.advance(column)
         elif self.current_char == '{':
             symbol.type = self.OPENCURLY
-            self.advance(column)
+            column = self.advance(column)
         elif self.current_char == '}':
             symbol.type = self.CLOSECURLY
+            column = self.advance(column)
         elif self.current_char == '-':
             column = self.advance(column)
             if self.current_char == '>':
@@ -191,16 +192,16 @@ class Scanner:
         return symbol, line, column
 
 
-    def print_error_line(self, line, column):
+    def print_error_line(self, line_text, column):
         """
         Print the line with a caret (^) underneath the character at error_pos.
         
         Args:
-            line (str): The line of input text.
+            line_text (str): The line of input text.
             error_pos (int): The index in the line where the error occurred.
         """
-        print(line.rstrip())
-        if 0 <= column < len(line):
+        print(line_text.rstrip())
+        if 0 <= column < len(line_text):
             print(" " * column + "^")
         else:
-            print(" " * len(line.rstrip()) + "^ (error position out of bounds)")
+            print(" " * len(line_text.rstrip()) + "^ (error position out of bounds)")
