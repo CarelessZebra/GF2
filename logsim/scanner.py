@@ -74,6 +74,8 @@ class Scanner:
             if self.current_char == '\n':
                 line += 1
                 column = 0
+            else:
+                column += 1
             self.current_char = self.file.read(1)
         return line, column
 
