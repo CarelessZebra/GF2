@@ -196,16 +196,20 @@ class Scanner:
 
         return symbol, line, column
 
+    def get_line(self, line_number):
+        """Return a specific line of an input file."""
+        self.file.seek(0)  # Reset file pointer to the beginning
+        for current_line_number, line in enumerate(self.file, start=1):
+            if current_line_number == line_number:
+                return line.rstrip('\n')  # Return the line without trailing newline
+        return None  # If the line number is out of range
 
-    def print_error_line(self, line_text, column):
+    def print_error_line(self, line, column):
         """
         Print the line with a caret (^) underneath the character at error_pos.
-        
-        Args:
-            line_text (str): The line of input text.
-            error_pos (int): The index in the line where the error occurred.
         """
-        print(line_text.rstrip())
+        line_text = self.get_line(line)
+        print(line_text)
         if 0 <= column < len(line_text):
             print(" " * column + "^")
         else:
