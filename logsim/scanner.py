@@ -142,9 +142,16 @@ class Scanner:
         """Translate the next sequence of characters into a symbol."""
         symbol = Symbol()
         # skip whitespace and comments before reading the next character
+        print(column)
         line, column = self.skip_whitespace(line, column)
+        print(column)
         line, column = self.skip_comments(line, column)
+        print(column)
         line, column = self.skip_whitespace(line, column)
+        print(column)
+        
+        symbol.line = line
+        symbol.column = column
 
         if self.current_char == '':
             # End of file
@@ -169,12 +176,13 @@ class Scanner:
             column = self.advance(column)
         elif self.current_char == '=':
             symbol.type = self.EQUALS
-            self.advance(column)
+            column = self.advance(column)
         elif self.current_char == '{':
             symbol.type = self.OPENCURLY
-            self.advance(column)
+            column = self.advance(column)
         elif self.current_char == '}':
             symbol.type = self.CLOSECURLY
+            column = self.advance(column)
         elif self.current_char == '-':
             column = self.advance(column)
             if self.current_char == '>':
@@ -186,8 +194,6 @@ class Scanner:
         else:
             column = self.advance(column)
 
-        symbol.line = line
-        symbol.column = column
         return symbol, line, column
 
 
