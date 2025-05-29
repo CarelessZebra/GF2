@@ -1,12 +1,12 @@
 """Test the scanner module"""
-"""
+
 import pytest
 
 from scanner import Scanner
 
 @pytest.fixture
 def scanner():
-    Fixture to create a Scanner instance
+    """Fixture to create a Scanner instance"""
 
     return Scanner()
 
@@ -14,7 +14,6 @@ def scanner():
 def scanner_file():
     return "logsim/test_full_adder.txt"
 
-"""
 
 
 import pytest
