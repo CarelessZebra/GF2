@@ -44,11 +44,11 @@ def test_advance_and_current_char(tmp_file):
     scanner = Scanner(path, Names())
     
     assert scanner.current_char == 'A'
-    scanner.advance()
+    scanner.advance(0)
     assert scanner.current_char == 'B'
-    scanner.advance()
+    scanner.advance(0)
     assert scanner.current_char == 'C'
-    scanner.advance()
+    scanner.advance(0)
     # After end of file, read returns empty string
     assert scanner.current_char == ''
 
@@ -60,8 +60,8 @@ def test_skip_whitespace_spaces(tmp_file):
     new_line, new_column = scanner.skip_whitespace(line, column)
     # Should skip all spaces and stop at 'X'
     assert scanner.current_char == 'X'
-    # No newlines, so line and column unchanged
-    assert (new_line, new_column) == (1, 0)
+    # No newlines, so line unchanged
+    assert (new_line, new_column) == (1, 3)
 
 def test_skip_whitespace_newlines(tmp_file):
     content = "\n\nX"
@@ -102,7 +102,7 @@ def test_get_name(tmp_file):
     scanner = Scanner(path, Names())
     # Prime current_char at first char of name
 
-    name = scanner.get_name()
+    name, column = scanner.get_name(0)
     assert name == 'abc123_'
     # After name, current_char should be space
     assert scanner.current_char == ' '
@@ -111,7 +111,7 @@ def test_get_number(tmp_file):
     content = "12345 rest"
     path = tmp_file(content)
     scanner = Scanner(path, Names())
-    number = scanner.get_number()
+    number, column = scanner.get_number(0)
     assert number == 12345
     # After number, current_char should be space
     assert scanner.current_char == ' '
@@ -141,19 +141,19 @@ def test_get_symbol():
     assert symbol.id == scanner.DEVICES
     assert symbol.type == scanner.KEYWORD
     assert symbol.line == 3
-    #assert symbol.column == 0
-    symbol, line, col =  scanner.get_symbol(3, 0)
+    assert symbol.column == 0
+    symbol, line, col =  scanner.get_symbol(line, col)
     assert symbol.id == None
     assert symbol.type == scanner.OPENCURLY
     assert symbol.line == 3
-    #assert symbol.column == 4
-    symbol, line, col =  scanner.get_symbol(3, 0)
+    assert symbol.column == 8
+    symbol, line, col =  scanner.get_symbol(line, col)
     assert symbol.id == 10
     assert symbol.type == scanner.NAME
     assert symbol.line == 4
-    #assert symbol.column == 8
-    symbol, line, col =  scanner.get_symbol(4, 0)
+    assert symbol.column == 4
+    symbol, line, col =  scanner.get_symbol(line, col)
     assert symbol.id == None
     assert symbol.type == scanner.COMMA
     assert symbol.line == 4
-    #assert symbol.column == 5
+    assert symbol.column == 5
