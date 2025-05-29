@@ -142,9 +142,16 @@ class Scanner:
         """Translate the next sequence of characters into a symbol."""
         symbol = Symbol()
         # skip whitespace and comments before reading the next character
+        print(column)
         line, column = self.skip_whitespace(line, column)
+        print(column)
         line, column = self.skip_comments(line, column)
+        print(column)
         line, column = self.skip_whitespace(line, column)
+        print(column)
+        
+        symbol.line = line
+        symbol.column = column
 
         if self.current_char == '':
             # End of file
@@ -187,8 +194,6 @@ class Scanner:
         else:
             column = self.advance(column)
 
-        symbol.line = line
-        symbol.column = column
         return symbol, line, column
 
 
