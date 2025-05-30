@@ -10,6 +10,7 @@ Parser - parses the definition file and builds the logic network.
 """
 
 
+#from scanner import Scanner
 class Parser:
 
     """Parse the definition file and build the logic network.
@@ -35,10 +36,62 @@ class Parser:
 
     def __init__(self, names, devices, network, monitors, scanner):
         """Initialise constants."""
+        self.scanner = scanner
+        self.names = names
+        self.devices = devices
+        self.network = network  
+        self.monitors = monitors
 
     def parse_network(self):
         """Parse the circuit definition file."""
         # For now just return True, so that userint and gui can run in the
         # skeleton code. When complete, should return False when there are
         # errors in the circuit definition file.
+    
+        symbol = self.scanner.get_symbol()
+
+        def con(self):
+            self.scanner.NAME
+            if self.scanner.get_symbol().type == self.scanner.ARROW:
+                self.symbol = self.scanner.get_symbol()
+                self.symbol.NAME
+            elif self.scanner.get_symbol().type == self.scanner.SEMICOLON:
+                self.symbol = self.scanner.get_symbol()
+                self.symbol.NAME               
+            else:
+                self.error()
+                return False
+
+        def connections(self):
+            if (self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECT_ID):
+                self.symbol = self.scanner.get_symbol()
+
+                if self.symbol.type == self.scanner.OPENCURLY:
+                    self.symbol = self.scanner.get_symbol()
+                    self.con()
+                    while self.symbol.type == self.scanner.COMMA:
+                        self.symbol = self.scanner.get_symbol()
+                        self.con()        
+                
+                if self.symbol.type == self.scanner.SEMICOLON:
+                    self.symbol = self.scanner.get_symbol()
+                else:
+                    self.error()
+                    return False
+            else:
+                self.error()
+                return False
+
+
+        def non_terminal_symbol(symbol, expected):
+            """Check if the symbol is a non-terminal symbol."""
+            if symbol != expected:
+                self.scanner.error(f"Expected {expected}, got {symbol}")
+                return False
+            return True
         return True
+    
+
+
+    #if out of scanner = "NAME"
+    # LOOK AT NEXT SYMBOL = "ARROW"
