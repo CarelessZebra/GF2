@@ -47,7 +47,7 @@ def main(arg_list):
     # devices = Devices(names)
     # network = Network(names, devices)
     # monitors = Monitors(names, devices, network)
-    names = None
+    names = Names()
     devices = None
     network = None
     monitors = None
