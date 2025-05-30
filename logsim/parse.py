@@ -41,7 +41,9 @@ class Parser:
         self.devices = devices
         self.network = network  
         self.monitors = monitors
-
+        self.symbol = (None)
+        self.error_count = 0
+         
     def parse_network(self):
         """Parse the circuit definition file."""
         # For now just return True, so that userint and gui can run in the
@@ -60,7 +62,7 @@ class Parser:
                 self.symbol.NAME               
             else:
                 self.error()
-                return False
+                #return False
 
         def connections(self):
             if (self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECT_ID):
@@ -77,10 +79,10 @@ class Parser:
                     self.symbol = self.scanner.get_symbol()
                 else:
                     self.error()
-                    return False
+                    #return False
             else:
                 self.error()
-                return False
+                #return False
 
 
         def non_terminal_symbol(symbol, expected):
