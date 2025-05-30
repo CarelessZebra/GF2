@@ -153,7 +153,7 @@ class Parser:
     #  dev = device_name { "." device_name } '=' device_type ';' ;
     def _dev(self):
         names: List[int] = [self._device_name()]  # first identifier consumed
-        while self._accept(self.scanner.FULLSTOP):
+        while self._accept(self.scanner.COMMA):
             names.append(self._device_name())
         self._expect(self.scanner.EQUALS)
         dev_kind, param = self._device_type()
@@ -164,12 +164,11 @@ class Parser:
 
     #  device_type = gate | switch | clock | "DTYPE" | "XOR" ;
     def _device_type(self) -> Tuple[Optional[int], Optional[int]]:
-        if self._is_kw(self.scanner.AND) or self._is_kw(self.scanner.NAND) \
-           or (hasattr(self.scanner, "NOR") and self._is_kw(self.scanner.NOR)) \
-           or self._is_kw(self.scanner.OR):
+        if self._is_kw(self.scanner.AND) or self._is_kw(self.scanner.NAND) or self._is_kw(self.scanner.NOR) or self._is_kw(self.scanner.OR):
             return self._gate()
         elif self.symbol.type == self.scanner.NUMBER and self.symbol.id in (0, 1):
             return self._switch()
+        # double check if this is the implementation of switch
         elif self._is_kw(self.scanner.CLOCK):
             return self._clock()
         elif self._accept(self.scanner.KEYWORD, self.scanner.DTYPE):
@@ -185,9 +184,9 @@ class Parser:
     def _gate(self):
         gate_kw = self.symbol.id  # remember which gate
         self._advance()
-        self._expect(self.scanner.OPENPAREN)  # see TODO below
+        self._expect(self.scanner.OPENBRAC)
         pins = self._pin_number()
-        self._expect(self.scanner.CLOSEPAREN) # see TODO below
+        self._expect(self.scanner.CLOSEBRAC)
         return (self.devices.GATE, (gate_kw, pins))
 
     #  switch = binary ;   binary = '0' | '1'
@@ -199,9 +198,9 @@ class Parser:
     #  clock = "CLOCK" '(' integer ')' ;
     def _clock(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CLOCK)
-        self._expect(self.scanner.OPENPAREN)
+        self._expect(self.scanner.OPENBRAC)
         period = self._integer()
-        self._expect(self.scanner.CLOSEPAREN)
+        self._expect(self.scanner.CLOSEBRAC)
         return (self.devices.CLOCK, period)
 
     # ─────────────────────────────────────────────────────── CONNECTIONS block
@@ -232,12 +231,12 @@ class Parser:
         return (dev, pin)
 
     # ───────────────────────────────────────────────────────── MONITOR block
-    #  monitors = "MONITOR" '{' signal { ';' signal } ';' '}' ;
+    #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
         self._expect(self.scanner.OPENCURLY)
         self._signal()
-        while self._accept(self.scanner.SEMICOLON):
+        while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
                 self._signal()
         self._expect(self.scanner.CLOSECURLY)
