@@ -59,7 +59,7 @@ class Scanner:
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
                                  self.COMMA,  self.NUMBER, self.NAME, self.EOF,
                                  self.ARROW, self.FULLSTOP, self.OPENCURLY, 
-                                 self.CLOSECURLY] = range(11)
+                                 self.CLOSECURLY, self.OPENBRAC,self.CLOSEBRAC] = range(13)
 
         # NOTE If you are adding a keyword, append it to this list
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
@@ -190,6 +190,12 @@ class Scanner:
             column = self.advance(column)
         elif self.current_char == '}':
             symbol.type = self.CLOSECURLY
+            column = self.advance(column)
+        elif self.current_char == '()':
+            symbol.type = self.OPENBRAC
+            column = self.advance(column)
+        elif self.current_char == ')':
+            symbol.type = self.CLOSEBRAC
             column = self.advance(column)
         elif self.current_char == '-':
             column = self.advance(column)
