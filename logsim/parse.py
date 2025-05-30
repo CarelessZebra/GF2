@@ -103,6 +103,7 @@ class Parser:
         # errors in the circuit definition file.
     
         symbol = self.scanner.get_symbol()
+        return True
 
     def _is_kw(self, kw_id: int) -> bool:
         return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
