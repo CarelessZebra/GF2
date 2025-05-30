@@ -52,6 +52,28 @@ class Parser:
     
         symbol = self.scanner.get_symbol()
 
+    def _is_kw(self, kw_id: int) -> bool:
+        return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
+
+    def _spec(self):
+        self._block()
+        while self._starts_block():
+            self._block()
+    
+    #  EBNF   block       = devices | connections | monitors ;
+    def _block(self):
+        if self._is_kw(self.scanner.DEVICES):
+            self._devices()
+        elif self._is_kw(self.scanner.CONNECTIONS):
+            self._connections()
+        elif self._is_kw(self.scanner.MONITOR):
+            self._monitors()
+        else:
+            self._error("expected 'DEVICES', 'CONNECTIONS' or 'MONITOR'")
+            self._advance()
+
+
+
         def con(self):
             self.scanner.NAME
             if self.scanner.get_symbol().type == self.scanner.ARROW:
@@ -83,6 +105,26 @@ class Parser:
             else:
                 self.error()
                 #return False
+
+            #  EBNF   spec        = block , { block } ;
+    def _spec(self):
+        self._block()
+        while self._starts_block():
+            self._block()
+    
+    #  EBNF   block       = devices | connections | monitors ;
+    def _block(self):
+        if self._is_kw(self.scanner.DEVICES):
+            self._devices()
+        elif self._is_kw(self.scanner.CONNECTIONS):
+            self._connections()
+        elif self._is_kw(self.scanner.MONITOR):
+            self._monitors()
+        else:
+            self._error("expected 'DEVICES', 'CONNECTIONS' or 'MONITOR'")
+            self._advance()
+
+
 
 
         def non_terminal_symbol(symbol, expected):
