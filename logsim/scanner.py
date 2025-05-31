@@ -192,6 +192,9 @@ class Scanner:
         elif self.current_char == ')':
             symbol.type = self.CLOSEBRAC
             column = self.advance(column)
+        elif self.current_char == '.':
+            symbol.type = self.FULLSTOP
+            column = self.advance(column)
         elif self.current_char == '-':
             column = self.advance(column)
             if self.current_char == '>':

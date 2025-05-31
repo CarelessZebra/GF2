@@ -81,7 +81,9 @@ class Parser:
         self.error_count += 1
         self.scanner.print_error_line(self.symbol.line, self.symbol.column)
         print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
-        # TODO - This should call the print_error function in scanner
+        while (self.symbol.type not in (self.scanner.SEMICOLON, self.scanner.CLOSECURLY) and
+                   self.symbol.type != self.scanner.EOF):
+                self._advance()
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -202,9 +204,9 @@ class Parser:
 
     #  con = signal '->' signal ';' ;
     def _con(self):
-        left = self._output_signal()
+        output_signal = self._output_signal()
         self._expect(self.scanner.ARROW)
-        right = self._input_signal()
+        input_signal = self._input_signal()
         self._expect(self.scanner.SEMICOLON)
         # ── semantic action here (e.g. connect signals)
         # self.network.make_connection(left, right)
@@ -224,33 +226,39 @@ class Parser:
             pin = self._output_pin_name()
         return (dev, pin)
     
-    # signal = output_signal | input_signal ; 
-    def _signal(self):
-        # TODO - Not sure how to write this 
-        return (None, None)
-        
-
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
         self._expect(self.scanner.OPENCURLY)
-        self._signal()
+        self._output_signal()
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
-                self._signal()
+                self._output_signal()
+        self._expect(self.scanner.SEMICOLON)
         self._expect(self.scanner.CLOSECURLY)
 
     # ──────────────────────────────────────────────────────────── primitives
     # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
     def _input_pin_name(self):
-        if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
+        if self.symbol.type in [self.scanner.NAME, self.scanner.KEYWORD]:
             text = self.names.get_name_string(self.symbol.id).upper()
-            self._advance()
-            if text == 'I':
-                num = self._pin_number()
+            if text[0] == 'I':
+                # NOTE - This might be possible to do using pin number but
+                # it is easier to do like this as I16 is read as one symbol here
+                # whilst in AND(16), 16 is the symbol
+                num = text[1:]
+                if not num.isdigit():
+                    self._error("pin number expected")
+                    return (None, None)
+                num = int(num)
+                if not (1 <= num <= 16):
+                    self._error("pin number out of range (1‑16)")
+                    return (None, None)
+                self._advance()
                 return ('I', num)
             elif text in ('DATA', 'SET', 'CLR', 'CLK'):
+                self._advance()
                 return (text, None)
         self._error("invalid pin name")
         return None
