@@ -23,11 +23,11 @@ CONNECTIONS {
     XOR1 -> XOR2.I1;
     C   -> XOR2.I2;
 
-    AND1 -> OR.I1;
-    AND2 -> OR.I2;
-    AND3 -> OR.I3;
+    AND1 -> OR1.I1;
+    AND2 -> OR1.I2;
+    AND3 -> OR1.I3;
 }
 
 MONITOR {
-    XOR2, OR;
+    XOR2, OR1;
 }

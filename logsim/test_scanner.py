@@ -151,7 +151,7 @@ def test_get_symbol():
     assert symbol.line == 3
     assert symbol.column == 8
     symbol, line, col =  scanner.get_symbol(line, col)
-    assert symbol.id == 10
+    assert symbol.id == scanner.names.query("A")
     assert symbol.type == scanner.NAME
     assert symbol.line == 4
     assert symbol.column == 4
