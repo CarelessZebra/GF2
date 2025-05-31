@@ -36,7 +36,7 @@ class Parser:
     """
 
     def __init__(self, names, devices, network, monitors, scanner):
-        """Initialise constants."""
+        """Initialise attributes."""
         self.scanner = scanner
         self.names = names
         self.devices = devices
@@ -44,6 +44,8 @@ class Parser:
         self.monitors = monitors
         self.symbol = (None)
         self.error_count = 0
+        self.line = 1
+        self.column = 0
 
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
@@ -77,7 +79,9 @@ class Parser:
         # -----------------------------------------------------------------------
     def _error(self, message: str):
         self.error_count += 1
-        print(f"Parser error (line {self.line}, col {self.column}): {message}")
+        self.scanner.print_error_line(self.symbol.line, self.symbol.column)
+        print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
+        # TODO - This should call the print_error function in scanner
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -101,47 +105,22 @@ class Parser:
         # For now just return True, so that userint and gui can run in the
         # skeleton code. When complete, should return False when there are
         # errors in the circuit definition file.
-    
-        symbol = self.scanner.get_symbol()
-        return True
+        self.symbol, self.line, self.column = self.scanner.get_symbol(self.line,self.column)
+        guitest = False
+        if guitest:
+            return True
+        else:
+            self._spec()
 
     def _is_kw(self, kw_id: int) -> bool:
         return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
-
-    def _spec(self):
-        self._block()
-        while self._starts_block():
-            self._block()
     
-    #  EBNF   block       = devices | connections | monitors ;
-    def _block(self):
-        if self._is_kw(self.scanner.DEVICES):
-            self._devices()
-        elif self._is_kw(self.scanner.CONNECTIONS):
-            self._connections()
-        elif self._is_kw(self.scanner.MONITOR):
-            self._monitors()
-        else:
-            self._error("expected 'DEVICES', 'CONNECTIONS' or 'MONITOR'")
-            self._advance()
-
-            #  EBNF   spec        = block , { block } ;
+    #  EBNF   spec        = devices, connections, monitors ;
     def _spec(self):
-        self._block()
-        while self._starts_block():
-            self._block()
-    
-    #  EBNF   block       = devices | connections | monitors ;
-    def _block(self):
-        if self._is_kw(self.scanner.DEVICES):
-            self._devices()
-        elif self._is_kw(self.scanner.CONNECTIONS):
-            self._connections()
-        elif self._is_kw(self.scanner.MONITOR):
-            self._monitors()
-        else:
-            self._error("expected 'DEVICES', 'CONNECTIONS' or 'MONITOR'")
-            self._advance()
+        self._devices()
+        self._connections()
+        self._monitors()
+
     #  devices = "DEVICES" "{" dev { dev } "}" ;
     def _devices(self):
         self._expect(self.scanner.KEYWORD, self.scanner.DEVICES)
@@ -167,9 +146,8 @@ class Parser:
     def _device_type(self) -> Tuple[Optional[int], Optional[int]]:
         if self._is_kw(self.scanner.AND) or self._is_kw(self.scanner.NAND) or self._is_kw(self.scanner.NOR) or self._is_kw(self.scanner.OR):
             return self._gate()
-        elif self.symbol.type == self.scanner.NUMBER and self.symbol.id in (0, 1):
+        elif self._is_kw(self.scanner.SWITCH):
             return self._switch()
-        # double check if this is the implementation of switch
         elif self._is_kw(self.scanner.CLOCK):
             return self._clock()
         elif self._accept(self.scanner.KEYWORD, self.scanner.DTYPE):
@@ -183,17 +161,24 @@ class Parser:
 
     #  gate = ( "AND" | "NAND" | "NOR" | "OR" ) '(' pin_number ')' ;
     def _gate(self):
+        # BUG - devices doesn't have a GATE attribute
         gate_kw = self.symbol.id  # remember which gate
         self._advance()
         self._expect(self.scanner.OPENBRAC)
         pins = self._pin_number()
         self._expect(self.scanner.CLOSEBRAC)
-        return (self.devices.GATE, (gate_kw, pins))
+        return (gate_kw, pins)
 
-    #  switch = binary ;   binary = '0' | '1'
+    #  switch = "SWTICH", "(", binary, ")" ;   binary = '0' | '1';
     def _switch(self):
+        self._expect(self.scanner.KEYWORD, self.scanner.SWITCH)
+        self._expect(self.scanner.OPENBRAC)
+        # TODO - This needs to only accept binary
         value = self.symbol.id  # 0 or 1
+        if value not in [0, 1]:
+            self._error("Expected binary input")
         self._advance()
+        self._expect(self.scanner.CLOSEBRAC)
         return (self.devices.SWITCH, value)
 
     #  clock = "CLOCK" '(' integer ')' ;
@@ -206,6 +191,7 @@ class Parser:
 
     # ─────────────────────────────────────────────────────── CONNECTIONS block
     #  connections = "CONNECTIONS" '{' con { con } '}' ;
+    # BUG - connections is not currently working, i will fix it on my next push
     def _connections(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CONNECTIONS)
         self._expect(self.scanner.OPENCURLY)
@@ -216,20 +202,33 @@ class Parser:
 
     #  con = signal '->' signal ';' ;
     def _con(self):
-        left = self._signal()
+        left = self._output_signal()
         self._expect(self.scanner.ARROW)
-        right = self._signal()
+        right = self._input_signal()
         self._expect(self.scanner.SEMICOLON)
         # ── semantic action here (e.g. connect signals)
         # self.network.make_connection(left, right)
 
-    #  signal = device_name [ '.' pin_name ] ;
-    def _signal(self):
+    #  input_signal = device_name, ".", input_pin_name;
+    def _input_signal(self):
+        dev = self._device_name()
+        self._expect(self.scanner.FULLSTOP)
+        pin = self._input_pin_name()
+        return (dev, pin)
+
+    # output_signal = device_name, [".", output_pin_name];
+    def _output_signal(self):
         dev = self._device_name()
         pin: Optional[int] = None
         if self._accept(self.scanner.FULLSTOP):
-            pin = self._pin_name()
+            pin = self._output_pin_name()
         return (dev, pin)
+    
+    # signal = output_signal | input_signal ; 
+    def _signal(self):
+        # TODO - Not sure how to write this 
+        return (None, None)
+        
 
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
@@ -243,15 +242,24 @@ class Parser:
         self._expect(self.scanner.CLOSECURLY)
 
     # ──────────────────────────────────────────────────────────── primitives
-    #  pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'Q' | 'QBAR' | 'I' pin_number ;
-    def _pin_name(self):
+    # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
+    def _input_pin_name(self):
         if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
             text = self.names.get_name_string(self.symbol.id).upper()
             self._advance()
             if text == 'I':
                 num = self._pin_number()
                 return ('I', num)
-            elif text in ('DATA', 'SET', 'CLR', 'CLK', 'Q', 'QBAR'):
+            elif text in ('DATA', 'SET', 'CLR', 'CLK'):
+                return (text, None)
+        self._error("invalid pin name")
+        return None
+
+    # output_pin_name = 'Q' | 'QBAR';
+    def _output_pin_name(self):
+        if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
+            text = self.names.get_name_string(self.symbol.id).upper()
+            if text in ('Q', 'QBAR'):
                 return (text, None)
         self._error("invalid pin name")
         return None

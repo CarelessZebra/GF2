@@ -119,7 +119,6 @@ class Scanner:
                         self.current_char = self.file.read(1)
                         break
                     prev = self.current_char
-        print(self.current_char)
         return line, column
 
     def get_name(self, column):
@@ -150,13 +149,9 @@ class Scanner:
         """Translate the next sequence of characters into a symbol."""
         symbol = Symbol()
         # skip whitespace and comments before reading the next character
-        print(column)
         line, column = self.skip_whitespace(line, column)
-        print(column)
         line, column = self.skip_comments(line, column)
-        print(column)
         line, column = self.skip_whitespace(line, column)
-        print(column)
         
         symbol.line = line
         symbol.column = column
@@ -191,7 +186,7 @@ class Scanner:
         elif self.current_char == '}':
             symbol.type = self.CLOSECURLY
             column = self.advance(column)
-        elif self.current_char == '()':
+        elif self.current_char == '(':
             symbol.type = self.OPENBRAC
             column = self.advance(column)
         elif self.current_char == ')':
