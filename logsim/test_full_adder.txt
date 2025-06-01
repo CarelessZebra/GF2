@@ -1,10 +1,10 @@
-# Full Adder Circuit 
+# Full Adder Circuit #
 
 DEVICES {
     A, B, C              = SWITCH(0);
     AND1, AND2, AND3     = AND(2);
     XOR1, XOR2           = XOR;
-    OR1                   = OR(3);
+    OR1                  = OR(3);
 }
 
 CONNECTIONS {

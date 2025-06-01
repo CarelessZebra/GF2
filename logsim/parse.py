@@ -46,6 +46,7 @@ class Parser:
         self.error_count = 0
         self.line = 1
         self.column = 0
+        self.stopping_set = []
 
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
@@ -69,21 +70,21 @@ class Parser:
         symbol does not match."""
         if not self._accept(sym_type, sym_id):
             self._error(f"expected {self._tok_desc(sym_type, sym_id)}")
-            # simple panic‑mode recovery – skip to ';' or '}'
-            while (self.symbol.type not in (self.scanner.SEMICOLON, self.scanner.CLOSECURLY) and
-                   self.symbol.type != self.scanner.EOF):
-                self._advance()
-            if self.symbol.type != self.scanner.EOF:
-                self._advance()
 
         # -----------------------------------------------------------------------
     def _error(self, message: str):
         self.error_count += 1
-        self.scanner.print_error_line(self.symbol.line, self.symbol.column)
-        print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
-        while (self.symbol.type not in (self.scanner.SEMICOLON, self.scanner.CLOSECURLY) and
-                   self.symbol.type != self.scanner.EOF):
-                self._advance()
+        # This is a very scuffed way of not printing error messages if we have already reached EOF
+        if self.symbol.type!=self.scanner.EOF:
+            self.scanner.print_error_line(self.symbol.line, self.symbol.column)
+            print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
+        else:
+            return
+        while (self.symbol.type not in self.stopping_set and
+                self.symbol.type != self.scanner.EOF):
+            self._advance()
+        if self.symbol.type == self.scanner.EOF:
+            print("Error recovery was not possible, end of file reached")
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -119,20 +120,40 @@ class Parser:
     
     #  EBNF   spec        = devices, connections, monitors ;
     def _spec(self):
-        self._devices()
-        self._connections()
-        self._monitors()
+        if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.DEVICES:
+            self._devices()
+        else:
+            self._error("Expected DEVICEES block")
+        if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECTIONS:
+            self._connections()
+        else:
+            self._error("Expected CONNECTIONS block")
+        if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.MONITOR:
+            self._monitors()
+        else:
+            self._error("Expected MONITORS block")
 
     #  devices = "DEVICES" "{" dev { dev } "}" ;
     def _devices(self):
         self._expect(self.scanner.KEYWORD, self.scanner.DEVICES)
         self._expect(self.scanner.OPENCURLY)
+        self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._dev()
-        while self.symbol.type == self.scanner.NAME:
-            self._dev()
-        self._expect(self.scanner.CLOSECURLY)
+        # BUG - If you put a none name symbol then it expects a 
+        # closecurly as the next symbol but skips to the semicolon so should just
+        # continue parsing
+        while self.symbol.type != self.scanner.CLOSECURLY:
+            if self.symbol.type == self.scanner.NAME:
+                self._dev()
+            else:
+                self._error("Expected an name containing only letters, underscore, numbers starting with a letter")
+                self._advance()
 
-    #  dev = device_name { "." device_name } '=' device_type ';' ;
+        self.stopping_set = [self.scanner.CLOSECURLY]
+        self._expect(self.scanner.CLOSECURLY)
+        self.stopping_set = []
+
+    #  dev = device_name { "," device_name } '=' device_type ';' ;
     def _dev(self):
         names: List[int] = [self._device_name()]  # first identifier consumed
         while self._accept(self.scanner.COMMA):
@@ -175,7 +196,6 @@ class Parser:
     def _switch(self):
         self._expect(self.scanner.KEYWORD, self.scanner.SWITCH)
         self._expect(self.scanner.OPENBRAC)
-        # TODO - This needs to only accept binary
         value = self.symbol.id  # 0 or 1
         if value not in [0, 1]:
             self._error("Expected binary input")
@@ -197,10 +217,13 @@ class Parser:
     def _connections(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CONNECTIONS)
         self._expect(self.scanner.OPENCURLY)
+        self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._con()
         while self.symbol.type == self.scanner.NAME:
             self._con()
+        self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
+        self.stopping_set = []
 
     #  con = signal '->' signal ';' ;
     def _con(self):
@@ -231,12 +254,15 @@ class Parser:
     def _monitors(self):
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
         self._expect(self.scanner.OPENCURLY)
+        self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._output_signal()
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
                 self._output_signal()
+        self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.SEMICOLON)
         self._expect(self.scanner.CLOSECURLY)
+        self.stopping_set = []
 
     # ──────────────────────────────────────────────────────────── primitives
     # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
