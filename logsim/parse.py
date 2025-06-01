@@ -47,6 +47,7 @@ class Parser:
         self.line = 1
         self.column = 0
         self.stopping_set = []
+        self.error_flag = False #This means a syntax block can terminate early if an error is flagged
 
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
@@ -74,6 +75,7 @@ class Parser:
         # -----------------------------------------------------------------------
     def _error(self, message: str):
         self.error_count += 1
+        self.error_flag = True
         # This is a very scuffed way of not printing error messages if we have already reached EOF
         if self.symbol.type!=self.scanner.EOF:
             self.scanner.print_error_line(self.symbol.line, self.symbol.column)
@@ -85,6 +87,8 @@ class Parser:
             self._advance()
         if self.symbol.type == self.scanner.EOF:
             print("Error recovery was not possible, end of file reached")
+        else:
+            self._advance()
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -146,8 +150,7 @@ class Parser:
             if self.symbol.type == self.scanner.NAME:
                 self._dev()
             else:
-                self._error("Expected an name containing only letters, underscore, numbers starting with a letter")
-                self._advance()
+                self._error("device identifier expected")
 
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
@@ -155,12 +158,29 @@ class Parser:
 
     #  dev = device_name { "," device_name } '=' device_type ';' ;
     def _dev(self):
+        #if an error flag is raised then need to not run the rest
         names: List[int] = [self._device_name()]  # first identifier consumed
+        if self.error_flag:
+            self.error_flag = False
+            return False
         while self._accept(self.scanner.COMMA):
             names.append(self._device_name())
+            if self.error_flag:
+                self.error_flag = False
+                return False
         self._expect(self.scanner.EQUALS)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         dev_kind, param = self._device_type()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.SEMICOLON)
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        return True
         # ── semantic action here (e.g. create device(s))
         # for nm in names:
         #     self.devices.make_device(nm, dev_kind, param)
