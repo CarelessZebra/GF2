@@ -152,7 +152,6 @@ class Scanner:
         line, column = self.skip_whitespace(line, column)
         line, column = self.skip_comments(line, column)
         line, column = self.skip_whitespace(line, column)
-        
         symbol.line = line
         symbol.column = column
 

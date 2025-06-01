@@ -84,6 +84,9 @@ class Parser:
             return
         while (self.symbol.type not in self.stopping_set and
                 self.symbol.type != self.scanner.EOF):
+            print(self.symbol.type)
+            if self.symbol.type == self.scanner.NAME:
+                print(self.names.get_name_string(self.symbol.id))
             self._advance()
         if self.symbol.type == self.scanner.EOF:
             print("Error recovery was not possible, end of file reached")
@@ -159,12 +162,12 @@ class Parser:
     #  dev = device_name { "," device_name } '=' device_type ';' ;
     def _dev(self):
         #if an error flag is raised then need to not run the rest
-        names: List[int] = [self._device_name()]  # first identifier consumed
+        names_list: List[int] = [self._device_name()]  # first identifier consumed
         if self.error_flag:
             self.error_flag = False
             return False
         while self._accept(self.scanner.COMMA):
-            names.append(self._device_name())
+            names_list.append(self._device_name())
             if self.error_flag:
                 self.error_flag = False
                 return False
