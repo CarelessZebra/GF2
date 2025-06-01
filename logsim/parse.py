@@ -48,6 +48,7 @@ class Parser:
         self.column = 0
         self.stopping_set = []
         self.error_flag = False #This means a syntax block can terminate early if an error is flagged
+        self.errors = [] #keep track of error codes, line, and col for printing
 
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
@@ -73,25 +74,27 @@ class Parser:
             self._error(f"expected {self._tok_desc(sym_type, sym_id)}")
 
         # -----------------------------------------------------------------------
-    def _error(self, message: str):
+    def _error(self, error_msg):
         self.error_count += 1
         self.error_flag = True
         # This is a very scuffed way of not printing error messages if we have already reached EOF
         if self.symbol.type!=self.scanner.EOF:
-            self.scanner.print_error_line(self.symbol.line, self.symbol.column)
-            print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
+            self.errors.append((error_msg, self.symbol.line, self.symbol.column))
+            #print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
         else:
             return
         while (self.symbol.type not in self.stopping_set and
                 self.symbol.type != self.scanner.EOF):
-            print(self.symbol.type)
-            if self.symbol.type == self.scanner.NAME:
-                print(self.names.get_name_string(self.symbol.id))
             self._advance()
         if self.symbol.type == self.scanner.EOF:
             print("Error recovery was not possible, end of file reached")
         else:
             self._advance()
+
+    def _print_all_errors(self):
+        for error_msg, line, column in self.errors:
+            self.scanner.print_error_line(line, column)
+            print(error_msg)
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -121,6 +124,7 @@ class Parser:
             return True
         else:
             self._spec()
+            self._print_all_errors()
 
     def _is_kw(self, kw_id: int) -> bool:
         return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
@@ -143,43 +147,58 @@ class Parser:
     #  devices = "DEVICES" "{" dev { dev } "}" ;
     def _devices(self):
         self._expect(self.scanner.KEYWORD, self.scanner.DEVICES)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.OPENCURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._dev()
-        # BUG - If you put a none name symbol then it expects a 
-        # closecurly as the next symbol but skips to the semicolon so should just
-        # continue parsing
+        
         while self.symbol.type != self.scanner.CLOSECURLY:
             if self.symbol.type == self.scanner.NAME:
                 self._dev()
             else:
                 self._error("device identifier expected")
+                return False
 
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self.stopping_set = []
 
     #  dev = device_name { "," device_name } '=' device_type ';' ;
     def _dev(self):
         #if an error flag is raised then need to not run the rest
         names_list: List[int] = [self._device_name()]  # first identifier consumed
+        
         if self.error_flag:
             self.error_flag = False
             return False
+        
         while self._accept(self.scanner.COMMA):
             names_list.append(self._device_name())
             if self.error_flag:
                 self.error_flag = False
                 return False
+        
         self._expect(self.scanner.EQUALS)
+        
         if self.error_flag:
             self.error_flag = False
             return False
-        dev_kind, param = self._device_type()
-        if self.error_flag:
-            self.error_flag = False
+        
+        try:
+            dev_kind, param = self._device_type()
+        except:
             return False
+        
         self._expect(self.scanner.SEMICOLON)
+        
         if self.error_flag:
             self.error_flag = False
             return False
@@ -202,7 +221,6 @@ class Parser:
             return (self.devices.XOR, None)
         else:
             self._error("invalid device type")
-            self._advance()
             return (None, None)
 
     #  gate = ( "AND" | "NAND" | "NOR" | "OR" ) '(' pin_number ')' ;
@@ -211,27 +229,74 @@ class Parser:
         gate_kw = self.symbol.id  # remember which gate
         self._advance()
         self._expect(self.scanner.OPENBRAC)
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         pins = self._pin_number()
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._expect(self.scanner.CLOSEBRAC)
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         return (gate_kw, pins)
 
     #  switch = "SWTICH", "(", binary, ")" ;   binary = '0' | '1';
     def _switch(self):
         self._expect(self.scanner.KEYWORD, self.scanner.SWITCH)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._expect(self.scanner.OPENBRAC)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         value = self.symbol.id  # 0 or 1
         if value not in [0, 1]:
             self._error("Expected binary input")
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._advance()
         self._expect(self.scanner.CLOSEBRAC)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         return (self.devices.SWITCH, value)
 
     #  clock = "CLOCK" '(' integer ')' ;
     def _clock(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CLOCK)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.OPENBRAC)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         period = self._integer()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.CLOSEBRAC)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         return (self.devices.CLOCK, period)
 
     # ─────────────────────────────────────────────────────── CONNECTIONS block
@@ -239,52 +304,120 @@ class Parser:
     # BUG - connections is not currently working, i will fix it on my next push
     def _connections(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CONNECTIONS)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.OPENCURLY)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._con()
+
         while self.symbol.type == self.scanner.NAME:
             self._con()
+            
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self.stopping_set = []
 
     #  con = signal '->' signal ';' ;
     def _con(self):
         output_signal = self._output_signal()
+        if not output_signal:
+            return False
         self._expect(self.scanner.ARROW)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         input_signal = self._input_signal()
+        if not input_signal:
+            return False
         self._expect(self.scanner.SEMICOLON)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         # ── semantic action here (e.g. connect signals)
         # self.network.make_connection(left, right)
 
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
         dev = self._device_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.FULLSTOP)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         pin = self._input_pin_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         return (dev, pin)
 
     # output_signal = device_name, [".", output_pin_name];
     def _output_signal(self):
         dev = self._device_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         pin: Optional[int] = None
         if self._accept(self.scanner.FULLSTOP):
             pin = self._output_pin_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         return (dev, pin)
     
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._expect(self.scanner.OPENCURLY)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._output_signal()
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
                 self._output_signal()
+            if self.error_flag:
+                self.error_flag = False
+                return False
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.SEMICOLON)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.CLOSECURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self.stopping_set = []
 
     # ──────────────────────────────────────────────────────────── primitives
