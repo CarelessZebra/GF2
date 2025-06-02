@@ -50,7 +50,7 @@ class Parser:
         self.error_flag = False #This means a syntax block can terminate early if an error is flagged
         self.errors = [] #keep track of error codes, line, and col for printing
         self.device_info: dict[int, Tuple[int,int,int]] = {}
-        
+
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
         self.symbol, self.line, self.column = self.scanner.get_symbol(
@@ -232,11 +232,42 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
-        return True
-    
-        # ── semantic action here (e.g. create device(s))
-        # for nm in names:
-        #     self.devices.make_device(nm, dev_kind, param)
+        #return True
+        for nm in names_list:
+            if dev_kind in (
+                self.devices.AND,
+                self.devices.NAND,
+                self.devices.OR,
+                self.devices.NOR,
+            ):
+               # param is the number of inputs (from AND(N), etc.), 1 output
+                n_inputs = param
+                n_outputs = 1
+
+            elif dev_kind == self.devices.XOR:
+                # XOR devices always have exactly 2 inputs by spec, 1 output
+                n_inputs = 2
+                n_outputs = 1
+
+            elif dev_kind == self.devices.D_TYPE:
+                # D-flip-flop: 4 named inputs (DATA, SET, CLR, CLK), 2 outputs (Q, QBAR)
+                n_inputs = 4
+                n_outputs = 2
+
+            elif dev_kind == self.devices.SWITCH:
+                n_inputs  = 0
+                n_outputs = 1
+
+            elif dev_kind == self.devices.CLOCK:
+                n_inputs  = 0
+                n_outputs = 1
+
+            else:
+                # (If you add more device types in future, handle here)
+                n_inputs  = 0
+                n_outputs = 1
+
+            self.device_info[nm] = (dev_kind, n_inputs, n_outputs)
 
     #  device_type = gate | switch | clock | "DTYPE" | "XOR" ;
     def _device_type(self) -> Tuple[Optional[int], Optional[int]]:
@@ -396,6 +427,7 @@ class Parser:
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
         dev = self._device_name()
+        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
 
         if dev not in self.dev_list:
             self._error("device must be defined before use")
@@ -417,11 +449,101 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
+        #return (dev, pin)
+        pin_label, pin_index = pin
+
+        if kind in (
+            self.devices.AND,
+            self.devices.NAND,
+            self.devices.OR,
+            self.devices.NOR,
+        ):
+            # 1-to-N gate: must use I1..I{n_in}
+            if pin_label != "I" or not (1 <= pin_index <= n_in):
+                self._error(f"expected I1..I{n_in} on device {self.names.get_name_string(dev)}")
+                self.error_flag = False
+                return False
+
+        elif kind == self.devices.XOR:
+            # XOR only permits I1 or I2
+            if pin_label != "I" or pin_index not in (1, 2):
+                self._error(f"XOR devices only support I1 and I2 (got {pin_label}{pin_index}) on {self.names.get_name_string(dev)}")
+                self.error_flag = False
+                return False
+
+        elif kind == self.devices.D_TYPE:
+            # DTYPE’s inputs must be DATA / SET / CLR / CLK
+            if pin_label not in ("DATA", "SET", "CLR", "CLK"):
+                self._error(f"DTYPE input pin must be DATA, SET, CLR or CLK (got {pin_label}) on {self.names.get_name_string(dev)}")
+                self.error_flag = False
+                return False
+
+        else:
+            # SWITCH & CLOCK have no named input pins
+            self._error(f"device {self.names.get_name_string(dev)} has no input pins")
+            self.error_flag = False
+            return False
+
         return (dev, pin)
 
+
     # output_signal = device_name, [".", output_pin_name];
+
     def _output_signal(self):
         dev = self._device_name()
+        if dev not in self.dev_list:
+            self._error("device must be defined before use")
+            self.error_flag = False
+            return False
+
+        # Look up (kind, n_in, n_out) for this device
+        kind, _, n_out = self.device_info.get(dev, (None, 0, 0))
+
+        # If the user wrote “.something”
+        if self._accept(self.scanner.FULLSTOP):
+            pin_label, _ = self._output_pin_name()
+            if self.error_flag:
+                self.error_flag = False
+                return False
+
+            # ── ADDED semantic check: only DTYPE can use Q/QBAR
+            if kind == self.devices.D_TYPE:
+                if pin_label not in ("Q", "QBAR"):
+                    self._error(
+                        f"DTYPE output pin must be Q or QBAR "
+                        f"(got {pin_label}) on {self.names.get_name_string(dev)}"
+                    )
+                    self.error_flag = False
+                    return False
+            else:
+                # any other device has exactly one unnamed output, so “.Q” is illegal
+                self._error(
+                    f"{self.names.get_name_string(dev)} "
+                    f"does not have an output pin named “{pin_label}”"
+                )
+                self.error_flag = False
+                return False
+
+            return (dev, (pin_label, None))
+
+        # No “.pin” was written: allowed only if exactly one output exists
+        if n_out != 1:
+            self._error(
+                f"{self.names.get_name_string(dev)} requires an explicit "
+                "output pin name (Q or QBAR)."
+            )
+            self.error_flag = False
+            return False
+
+        # Implicit single output:
+        return (dev, ("O", None))
+
+
+
+    """
+    def _output_signal(self):
+        dev = self._device_name()
+        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
 
         if dev not in self.dev_list:
             self._error("device must be defined before use")
@@ -432,13 +554,38 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
-        pin: Optional[int] = None
+        
+        pin: Optional[Tuple[str, int]] = None
         if self._accept(self.scanner.FULLSTOP):
             pin = self._output_pin_name()
         if self.error_flag:
             self.error_flag = False
             return False
-        return (dev, pin)
+        #return (dev, pin)
+
+        pin_label, _ = pin
+        # ─────────────────────────────────────────────────
+        # → ADDED: enforce output-pin rules
+        if kind == self.devices.D_TYPE:
+            # only Q or QBAR allowed
+            if pin_label not in ("Q", "QBAR"):
+                self._error(f"DTYPE output pin must be Q or QBAR (got {pin_label}) on {self.names.get_name_string(dev)}")
+                return False
+        else:
+            # any other device has exactly one implicit output → ".Q" is illegal
+            self._error(f"{self.names.get_name_string(dev)} does not have an output pin named “{pin_label}”")
+            return False
+
+        return (dev, (pin_label, None))
+
+        # No ".pin" was written: allowed only if this device has exactly one output
+        if n_out != 1:
+            self._error(f"{self.names.get_name_string(dev)} requires an explicit output pin name (Q or QBAR).")
+            return False
+
+        # otherwise, implicit single output:
+        return (dev, ("O", None))
+    """
     
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;

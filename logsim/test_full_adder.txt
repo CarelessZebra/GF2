@@ -11,7 +11,7 @@ CONNECTIONS {
     A -> AND1.I1;   
     B -> AND1.I2;
 
-    A -> AND2.I1;
+    F -> AND2.I3;
     C -> AND2.I2;
 
     B -> AND3.I1;
