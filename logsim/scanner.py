@@ -223,6 +223,6 @@ class Scanner:
         line_text = self.get_line(line)
         print(line_text)
         if 0 <= column < len(line_text):
-            print(" " * (column - 1)+ "^")
+            print(" " * (column)+ "^")
         else:
             print(" " * len(line_text.rstrip()) + "^ (error position out of bounds)")

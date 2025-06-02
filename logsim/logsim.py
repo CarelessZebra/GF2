@@ -13,7 +13,7 @@ Graphical user interface: logsim.py <file path>
 import getopt
 import sys
 
-import wx
+#import wx
 
 from names import Names
 from devices import Devices
@@ -22,7 +22,7 @@ from monitors import Monitors
 from scanner import Scanner
 from parse import Parser
 from userint import UserInterface
-from gui import Gui
+#from gui import Gui
 
 
 def main(arg_list):
@@ -54,6 +54,9 @@ def main(arg_list):
             sys.exit()
         elif option == "-c":  # use the command line user interface
             scanner = Scanner(path, names)
+            devices = Devices(names)
+            network = Network(names, devices)
+            monitors = Monitors(names, devices, network)
             parser = Parser(names, devices, network, monitors, scanner)
             if parser.parse_network():
                 # Initialise an instance of the userint.UserInterface() class

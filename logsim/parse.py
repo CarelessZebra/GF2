@@ -132,6 +132,7 @@ class Parser:
         else:
             self._spec()
             self._print_all_errors()
+            return True
 
     def _is_kw(self, kw_id: int) -> bool:
         return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
