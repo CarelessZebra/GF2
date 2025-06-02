@@ -147,13 +147,17 @@ class Parser:
     #  devices = "DEVICES" "{" dev { dev } "}" ;
     def _devices(self):
         self._expect(self.scanner.KEYWORD, self.scanner.DEVICES)
+
         if self.error_flag:
             self.error_flag = False
             return False
+        
         self._expect(self.scanner.OPENCURLY)
+
         if self.error_flag:
             self.error_flag = False
             return False
+        
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._dev()
         
@@ -166,9 +170,11 @@ class Parser:
 
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
+
         if self.error_flag:
             self.error_flag = False
             return False
+        
         self.stopping_set = []
 
     #  dev = device_name { "," device_name } '=' device_type ';' ;
@@ -202,10 +208,16 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
-        return True
+        
         # ── semantic action here (e.g. create device(s))
-        # for nm in names:
-        #     self.devices.make_device(nm, dev_kind, param)
+        if self.error_count!=0:
+            return False
+        
+        # make each of the devices from the list
+        for nm in names_list:
+            self.devices.make_device(nm, dev_kind, param)
+        return True
+
 
     #  device_type = gate | switch | clock | "DTYPE" | "XOR" ;
     def _device_type(self) -> Tuple[Optional[int], Optional[int]]:
@@ -245,8 +257,16 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
-        
-        return (gate_kw, pins)
+        if gate_kw == self.scanner.AND:
+            dev_kind = self.devices.AND
+        elif gate_kw == self.scanner.NAND:
+            dev_kind = self.devices.NAND
+        elif gate_kw == self.scanner.NOR:
+            dev_kind = self.devices.NOR
+        elif gate_kw == self.scanner.OR:
+            dev_kind = self.devices.OR
+
+        return (dev_kind, pins)
 
     #  switch = "SWTICH", "(", binary, ")" ;   binary = '0' | '1';
     def _switch(self):
@@ -335,21 +355,30 @@ class Parser:
     #  con = signal '->' signal ';' ;
     def _con(self):
         output_signal = self._output_signal()
+
         if not output_signal:
             return False
+        
         self._expect(self.scanner.ARROW)
+
         if self.error_flag:
             self.error_flag = False
             return False
+        
         input_signal = self._input_signal()
+
         if not input_signal:
             return False
+        
         self._expect(self.scanner.SEMICOLON)
+
         if self.error_flag:
             self.error_flag = False
             return False
         # ── semantic action here (e.g. connect signals)
         # self.network.make_connection(left, right)
+        if self.error_count != 0:
+            self.network.make_connection()
 
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
@@ -438,10 +467,13 @@ class Parser:
                     self._error("pin number out of range (1‑16)")
                     return (None, None)
                 self._advance()
-                return ('I', num)
+                pin = "".join(["I",str(num)])
+                [pin_id] = self.names.lookup([pin])
+                return (pin_id)
             elif text in ('DATA', 'SET', 'CLR', 'CLK'):
                 self._advance()
-                return (text, None)
+                [pin_id] = self.names.lookup([text])
+                return (pin_id)
         self._error("invalid pin name")
         return None
 
@@ -450,7 +482,9 @@ class Parser:
         if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
             text = self.names.get_name_string(self.symbol.id).upper()
             if text in ('Q', 'QBAR'):
-                return (text, None)
+                [pin_id] = self.names.lookup([text])
+                return (pin_id)
+
         self._error("invalid pin name")
         return None
 
