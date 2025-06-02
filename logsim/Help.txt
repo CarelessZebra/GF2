@@ -1,0 +1,8 @@
+User commands:
+    r N       - run the simulation for N cycles
+    c N       - continue the simulation for N cycles
+    s X N     - set switch X to N (0 or 1)
+    m X       - set a monitor on signal X
+    z X       - zap the monitor on signal X
+    h         - help (this command)
+    q         - quit the program
