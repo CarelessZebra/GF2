@@ -49,7 +49,8 @@ class Parser:
         self.stopping_set = []
         self.error_flag = False #This means a syntax block can terminate early if an error is flagged
         self.errors = [] #keep track of error codes, line, and col for printing
-
+        self.device_info: dict[int, Tuple[int,int,int]] = {}
+        
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
         self.symbol, self.line, self.column = self.scanner.get_symbol(
@@ -232,6 +233,7 @@ class Parser:
             self.error_flag = False
             return False
         return True
+    
         # ── semantic action here (e.g. create device(s))
         # for nm in names:
         #     self.devices.make_device(nm, dev_kind, param)
@@ -565,7 +567,7 @@ class Parser:
             return True
         return True
 
-        def con(self):
+        def con(self):      
             self.scanner.NAME
             if self.scanner.get_symbol().type == self.scanner.ARROW:
                 self.symbol = self.scanner.get_symbol()
