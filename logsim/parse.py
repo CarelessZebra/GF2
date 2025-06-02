@@ -354,9 +354,9 @@ class Parser:
 
     #  con = signal '->' signal ';' ;
     def _con(self):
-        output_signal = self._output_signal()
+        output_dev, output_pin_id = self._output_signal()
 
-        if not output_signal:
+        if not (output_dev, output_pin_id):
             return False
         
         self._expect(self.scanner.ARROW)
@@ -365,9 +365,9 @@ class Parser:
             self.error_flag = False
             return False
         
-        input_signal = self._input_signal()
+        input_dev, input_pin_id = self._input_signal()
 
-        if not input_signal:
+        if not (input_dev, input_pin_id):
             return False
         
         self._expect(self.scanner.SEMICOLON)
@@ -378,7 +378,8 @@ class Parser:
         # ── semantic action here (e.g. connect signals)
         # self.network.make_connection(left, right)
         if self.error_count != 0:
-            self.network.make_connection()
+            return False
+        self.network.make_connection(input_dev, input_pin_id, output_dev, output_pin_id)
 
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
@@ -390,11 +391,11 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
-        pin = self._input_pin_name()
+        pin_id = self._input_pin_name()
         if self.error_flag:
             self.error_flag = False
             return False
-        return (dev, pin)
+        return (dev, pin_id)
 
     # output_signal = device_name, [".", output_pin_name];
     def _output_signal(self):
@@ -402,19 +403,19 @@ class Parser:
         if self.error_flag:
             self.error_flag = False
             return False
-        pin: Optional[int] = None
+        pin_id: Optional[int] = None
         if self._accept(self.scanner.FULLSTOP):
-            pin = self._output_pin_name()
+            pin_id = self._output_pin_name()
         if self.error_flag:
             self.error_flag = False
             return False
-        return (dev, pin)
+        return (dev, pin_id)
     
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
-
+        monitor_list = []
         if self.error_flag:
             self.error_flag = False
             return False
@@ -426,15 +427,16 @@ class Parser:
             return False
         
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
-        self._output_signal()
-
+        monitor_dev, monitor_pin = self._output_signal()
+        monitor_list.append((monitor_dev, monitor_pin))
         if self.error_flag:
             self.error_flag = False
             return False
         
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
-                self._output_signal()
+                monitor_dev, monitor_pin = self._output_signal()
+                monitor_list.append((monitor_dev, monitor_pin))
             if self.error_flag:
                 self.error_flag = False
                 return False
@@ -448,6 +450,11 @@ class Parser:
             self.error_flag = False
             return False
         self.stopping_set = []
+        if self.error_count != 0:
+            return False
+        #Make monitors
+        for monitor_dev, monitor_pin in monitor_list:
+            self.monitors.make_monitor(monitor_dev, monitor_pin)
 
     # ──────────────────────────────────────────────────────────── primitives
     # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
