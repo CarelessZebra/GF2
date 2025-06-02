@@ -136,6 +136,7 @@ class Network:
                 error_type = self.PORT_ABSENT
                 
         elif first_port_id in first_device.outputs:
+            #print(second_port_id, second_device.inputs)
             if second_port_id in second_device.outputs:
                 # Both ports are outputs
                 error_type = self.OUTPUT_TO_OUTPUT
@@ -144,6 +145,7 @@ class Network:
                     # Input is already in a connection
                     error_type = self.INPUT_CONNECTED
                 else:
+                    #print("yay")
                     second_device.inputs[second_port_id] = (first_device_id,
                                                             first_port_id)
                     error_type = self.NO_ERROR

@@ -276,6 +276,9 @@ class Parser:
                 n_outputs = 1
 
             self.device_info[nm] = (dev_kind, n_inputs, n_outputs)
+            error = self.devices.make_device(nm, dev_kind, param)
+            if error != self.devices.NO_ERROR:
+                print("make_device error", error)
 
         return True
     """
@@ -543,11 +546,24 @@ class Parser:
 
 
         self._expect(self.scanner.SEMICOLON)
+
         if self.error_flag:
             self.error_flag = False
             return False
         # ── semantic action here (e.g. connect signals)
-        # self.network.make_connection(left, right)
+        if self.error_count==0:
+            in_dev_id, in_pin = input_signal
+            in_pin = self.names.query(in_pin)
+            # Adi I don't know what your extra variable is
+            out_dev_id, (out_pin, some_variable) = output_signal
+            out_pin = self.names.query(out_pin)
+            if out_pin != "O":
+                error = self.network.make_connection(out_dev_id, out_pin, in_dev_id, in_pin)
+            else:
+                error = self.network.make_connection(out_dev_id, None,in_dev_id, in_pin)
+            if error!=self.network.NO_ERROR:
+                print("Make_connections error:", error)
+
 
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
@@ -576,6 +592,7 @@ class Parser:
             return False
         #return (dev, pin)
         pin_label, pin_index = pin
+        pin_name = "".join([pin_label, str(pin_index)])
 
         if kind in (
             self.devices.AND,
@@ -609,7 +626,7 @@ class Parser:
             self.error_flag = False
             return False
 
-        return (dev, pin)
+        return (dev, pin_name)
 
 
     # output_signal = device_name, [".", output_pin_name];
@@ -668,8 +685,6 @@ class Parser:
 
         # Implicit single output:
         return (dev, ("O", None))
-
-
 
     """
     def _output_signal(self):
@@ -770,6 +785,16 @@ class Parser:
             self.error_flag = False
             return False
         self.stopping_set = []
+
+        #call make monitors
+        for output_signal in self.monitors_list:
+            # Adi I don't know what your extra variable is
+            out_dev_id, (out_pin, some_variable) = output_signal
+            out_pin = self.names.query(out_pin)
+            error = self.monitors.make_monitor(out_dev_id, out_pin)
+            if error != self.monitors.NO_ERROR:
+                print("make_monitor error", error)
+            
 
     # ──────────────────────────────────────────────────────────── primitives
     # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
