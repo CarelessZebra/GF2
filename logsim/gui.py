@@ -235,6 +235,7 @@ class Gui(wx.Frame):
         fileMenu = wx.Menu()
         menuBar = wx.MenuBar()
         fileMenu.Append(wx.ID_ABOUT, "&About")
+        fileMenu.Append(wx.ID_HELP_COMMANDS, 'Help')
         fileMenu.Append(wx.ID_EXIT, "&Exit")
         menuBar.Append(fileMenu, "&File")
         self.SetMenuBar(menuBar)
@@ -275,8 +276,13 @@ class Gui(wx.Frame):
         Id = event.GetId()
         if Id == wx.ID_EXIT:
             self.Close(True)
+        if Id == wx.ID_HELP_COMMANDS:
+            with open("Help.txt", "r") as file:
+                help_text = file.read()
+            wx.MessageBox(help_text, "Help", wx.ICON_INFORMATION | wx.OK)
+
         if Id == wx.ID_ABOUT:
-            wx.MessageBox("Logic Simulator\nCreated by Mojisola Agboola\n2017",
+            wx.MessageBox("Logic Simulator\nCreated by Team 1\n2025",
                           "About Logsim", wx.ICON_INFORMATION | wx.OK)
 
     def on_spin(self, event):
