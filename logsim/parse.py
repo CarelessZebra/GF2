@@ -467,7 +467,7 @@ class Parser:
                     self._error("pin number out of range (1‑16)")
                     return (None, None)
                 self._advance()
-                pin = "".join("I",str(num))
+                pin = "".join(["I",str(num)])
                 [pin_id] = self.names.lookup([pin])
                 return (pin_id)
             elif text in ('DATA', 'SET', 'CLR', 'CLK'):
