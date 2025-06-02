@@ -115,14 +115,6 @@ def test_get_number(tmp_file):
     # After number, current_char should be space
     assert scanner.current_char == ' '
 
-# need to finish parser first
-    scanner = Scanner("test_full_adder.txt", Names())
-    line = 11
-    col = 4
-    scanner.print_error_line(line,col)
-    captout, capterror = capsys.readouterr()
-    assert captout == "    A -> AND1.I1;\n    ^\n"
-
 def test_print_error_line_out_of_bounds(capsys):
     """Tests print_error_line print output
     when the column is out of bounds of the line"""
@@ -138,6 +130,7 @@ def test_get_symbol():
 
     scanner = Scanner("test_full_adder.txt", Names())
     line = 1
+    col = 0
     symbol, line, col =  scanner.get_symbol(line, col)
     assert symbol.id == scanner.DEVICES
     assert symbol.type == scanner.KEYWORD
