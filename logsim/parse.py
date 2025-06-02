@@ -119,6 +119,12 @@ class Parser:
         # skeleton code. When complete, should return False when there are
         # errors in the circuit definition file.
         self.symbol, self.line, self.column = self.scanner.get_symbol(self.line,self.column)
+
+        #device list
+        self.dev_list: List[int] = []
+        self.input_con_list: List[Tuple[int, Optional[int]]] = []  # list of connections
+        self.monitors_list: List[Tuple[int, Optional[int]]] = []  # list of monitors 
+
         guitest = False
         if guitest:
             return True
@@ -134,7 +140,7 @@ class Parser:
         if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.DEVICES:
             self._devices()
         else:
-            self._error("Expected DEVICEES block")
+            self._error("Expected DEVICES block")
         if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECTIONS:
             self._connections()
         else:
@@ -174,17 +180,40 @@ class Parser:
     #  dev = device_name { "," device_name } '=' device_type ';' ;
     def _dev(self):
         #if an error flag is raised then need to not run the rest
+        name_id = self.symbol.id  # remember the device name
+
+        if name_id in self.dev_list:
+            self._error("device identifier already used")
+            #print([self.names.get_name_string(i) for i in self.dev_list])
+            self.error_flag = False
+            return False
+        
         names_list: List[int] = [self._device_name()]  # first identifier consumed
         
+        self.dev_list.append(name_id)  # add to device list
+
         if self.error_flag:
             self.error_flag = False
             return False
         
         while self._accept(self.scanner.COMMA):
+
+            name_id = self.symbol.id  # remember the device name
+            if name_id in self.dev_list:
+                self._error("device identifier already used")
+                #print([self.names.get_name_string(i) for i in self.dev_list])
+                self.error_flag = False
+                return False
+        
+            self.dev_list.append(name_id)  # add to device list
+
             names_list.append(self._device_name())
+
             if self.error_flag:
                 self.error_flag = False
                 return False
+            
+
         
         self._expect(self.scanner.EQUALS)
         
@@ -334,9 +363,11 @@ class Parser:
 
     #  con = signal '->' signal ';' ;
     def _con(self):
+        
         output_signal = self._output_signal()
         if not output_signal:
             return False
+
         self._expect(self.scanner.ARROW)
         if self.error_flag:
             self.error_flag = False
@@ -344,6 +375,15 @@ class Parser:
         input_signal = self._input_signal()
         if not input_signal:
             return False
+        
+        if input_signal in self.input_con_list:
+            self._error("input signal already connected, use an OR gate to combine signals")
+            self.error_flag = False
+            return False
+        
+        self.input_con_list.append(input_signal)  # add output device to input signal
+
+
         self._expect(self.scanner.SEMICOLON)
         if self.error_flag:
             self.error_flag = False
@@ -354,9 +394,19 @@ class Parser:
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
         dev = self._device_name()
+
+        if dev not in self.dev_list:
+            self._error("device must be defined before use")
+            #print([self.names.get_name_string(i) for i in self.dev_list])
+            self.error_flag = False
+            return False
+
+
         if self.error_flag:
             self.error_flag = False
             return False
+
+
         self._expect(self.scanner.FULLSTOP)
         if self.error_flag:
             self.error_flag = False
@@ -370,6 +420,13 @@ class Parser:
     # output_signal = device_name, [".", output_pin_name];
     def _output_signal(self):
         dev = self._device_name()
+
+        if dev not in self.dev_list:
+            self._error("device must be defined before use")
+            #print([self.names.get_name_string(i) for i in self.dev_list])
+            self.error_flag = False
+            return False
+
         if self.error_flag:
             self.error_flag = False
             return False
@@ -397,7 +454,14 @@ class Parser:
             return False
         
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
-        self._output_signal()
+        output_signal = self._output_signal()
+
+        if output_signal in self.monitors_list:
+            self._error("signal already moinitored")
+            self.error_flag = False
+            return False
+        
+        self.monitors_list.append(output_signal)  # add output signal to monitors list
 
         if self.error_flag:
             self.error_flag = False
@@ -405,10 +469,17 @@ class Parser:
         
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
-                self._output_signal()
+                output_signal = self._output_signal()
             if self.error_flag:
                 self.error_flag = False
                 return False
+            if output_signal in self.monitors_list:
+                self._error("signal already moinitored")
+                self.error_flag = False
+                return False            
+            
+            self.monitors_list.append(output_signal)  # add output signal to monitor list
+
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.SEMICOLON)
         if self.error_flag:
@@ -476,6 +547,7 @@ class Parser:
 
     #  device_name = NAME token
     def _device_name(self):
+
         if self.symbol.type != self.scanner.NAME:
             self._error("device identifier expected")
             return None
