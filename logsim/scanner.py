@@ -57,12 +57,15 @@ class Scanner:
 <<<<<<< HEAD
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
                                  self.COMMA,  self.NUMBER, self.NAME, self.EOF,
-                                 self.ARROW, self.FULLSTOP, self.OPENCURLY, self.CLOSECURLY] = range(11)
+                                 self.ARROW, self.FULLSTOP, self.OPENCURLY, 
+                                 self.CLOSECURLY, self.OPENBRAC,self.CLOSEBRAC] = range(13)
 
+        # NOTE If you are adding a keyword, append it to this list
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
-                              "AND", "OR", "NAND", "XOR", "DTYPE",
+                              "AND", "OR", "NAND","NOR", "XOR", "DTYPE",
                               "CLOCK", "SWITCH"]
 
+        # Add the new keyword here aswell
         [self.DEVICES, self.CONNECTIONS, self.MONITOR,
          self.AND, self.OR, self.NAND, self.XOR, self.DTYPE,
 =======
@@ -139,7 +142,7 @@ class Scanner:
                         # EOF reached without closing comment
 <<<<<<< HEAD
                         break
-                    # track newlines
+                    # Track newlines
                     if self.current_char == '\n':
                         line += 1
                         column = 0

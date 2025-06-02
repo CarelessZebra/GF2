@@ -8,15 +8,10 @@ Classes
 -------
 Parser - parses the definition file and builds the logic network.
 """
-<<<<<<< HEAD
-
-
-=======
 from __future__ import annotations
 from typing import Optional, List, Tuple
 
 #from scanner import Scanner
->>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
 class Parser:
 
     """Parse the definition file and build the logic network.
@@ -41,10 +36,6 @@ class Parser:
     """
 
     def __init__(self, names, devices, network, monitors, scanner):
-<<<<<<< HEAD
-        """Initialise constants."""
-
-=======
         """Initialise attributes."""
         self.scanner = scanner
         self.names = names
@@ -122,15 +113,11 @@ class Parser:
         }
         return mapping.get(t, f"token_type_{t}")
     
->>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
     def parse_network(self):
         """Parse the circuit definition file."""
         # For now just return True, so that userint and gui can run in the
         # skeleton code. When complete, should return False when there are
         # errors in the circuit definition file.
-<<<<<<< HEAD
-        return True
-=======
         self.symbol, self.line, self.column = self.scanner.get_symbol(self.line,self.column)
         guitest = False
         if guitest:
@@ -541,4 +528,3 @@ class Parser:
         """
     #if out of scanner = "NAME"
     # LOOK AT NEXT SYMBOL = "ARROW"
->>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
