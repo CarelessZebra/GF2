@@ -277,9 +277,7 @@ class Gui(wx.Frame):
         if Id == wx.ID_EXIT:
             self.Close(True)
         if Id == wx.ID_HELP_COMMANDS:
-            with open("Help.txt", "r") as file:
-                help_text = file.read()
-            wx.MessageBox(help_text, "Help", wx.ICON_INFORMATION | wx.OK)
+            self.display_help()
 
         if Id == wx.ID_ABOUT:
             wx.MessageBox("Logic Simulator\nCreated by Team 1\n2025",
@@ -299,5 +297,18 @@ class Gui(wx.Frame):
     def on_text_box(self, event):
         """Handle the event when the user enters text."""
         text_box_value = self.text_box.GetValue()
-        text = "".join(["New text box value: ", text_box_value])
+        text = text_box_value.strip()
+        if text == "h":
+            self.display_help()
+        elif text == "q":
+            self.Close(True)
+        
+        else:
+            text = "".join(["Text entered: ", text])
         self.canvas.render(text)
+
+    def display_help(self):
+        """Display the help text in a message box."""
+        with open("Help.txt", "r") as file:
+            help_text = file.read()
+        wx.MessageBox(help_text, "Help", wx.ICON_INFORMATION | wx.OK)
