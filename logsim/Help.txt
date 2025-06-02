@@ -1,23 +1,8 @@
-1. Run (r N)
-Run the simulator for N cycles and display the waveforms at the current monitor points. Assume
-a cold start-up of the circuit, so randomise the state of DTYPE latches and clocks before the first
-simulation cycle. Clear any existing signal traces.
-
-2. Continue (c N)
-Continue running the simulator (e.g. after changing a switch) for N cycles and display the waveforms
-at the current monitor points.
-
-3. Set switch (s X N)
-Set switch X to N (0 or 1).
-
-4. Set monitor point (m X)
-Add the output signal X to the current list of monitor points.
-
-5. Zap monitor point (z X)
-Remove the monitor point X.
-
-6. Help (h)
-Print a list of available commands on the terminal.
-
-7. Quit (q)
-Quit the simulation
+User commands:
+    r N       - run the simulation for N cycles
+    c N       - continue the simulation for N cycles
+    s X N     - set switch X to N (0 or 1)
+    m X       - set a monitor on signal X
+    z X       - zap the monitor on signal X
+    h         - help (this command)
+    q         - quit the program
