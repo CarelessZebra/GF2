@@ -36,7 +36,7 @@ class Parser:
     """
 
     def __init__(self, names, devices, network, monitors, scanner):
-        """Initialise constants."""
+        """Initialise attributes."""
         self.scanner = scanner
         self.names = names
         self.devices = devices
@@ -44,6 +44,11 @@ class Parser:
         self.monitors = monitors
         self.symbol = (None)
         self.error_count = 0
+        self.line = 1
+        self.column = 0
+        self.stopping_set = []
+        self.error_flag = False #This means a syntax block can terminate early if an error is flagged
+        self.errors = [] #keep track of error codes, line, and col for printing
 
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
@@ -67,17 +72,29 @@ class Parser:
         symbol does not match."""
         if not self._accept(sym_type, sym_id):
             self._error(f"expected {self._tok_desc(sym_type, sym_id)}")
-            # simple panic‑mode recovery – skip to ';' or '}'
-            while (self.symbol.type not in (self.scanner.SEMICOLON, self.scanner.CLOSECURLY) and
-                   self.symbol.type != self.scanner.EOF):
-                self._advance()
-            if self.symbol.type != self.scanner.EOF:
-                self._advance()
 
         # -----------------------------------------------------------------------
-    def _error(self, message: str):
+    def _error(self, error_msg):
         self.error_count += 1
-        print(f"Parser error (line {self.line}, col {self.column}): {message}")
+        self.error_flag = True
+        # This is a very scuffed way of not printing error messages if we have already reached EOF
+        if self.symbol.type!=self.scanner.EOF:
+            self.errors.append((error_msg, self.symbol.line, self.symbol.column))
+            #print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
+        else:
+            return
+        while (self.symbol.type not in self.stopping_set and
+                self.symbol.type != self.scanner.EOF):
+            self._advance()
+        if self.symbol.type == self.scanner.EOF:
+            print("Error recovery was not possible, end of file reached")
+        else:
+            self._advance()
+
+    def _print_all_errors(self):
+        for error_msg, line, column in self.errors:
+            self.scanner.print_error_line(line, column)
+            print(error_msg)
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -101,64 +118,91 @@ class Parser:
         # For now just return True, so that userint and gui can run in the
         # skeleton code. When complete, should return False when there are
         # errors in the circuit definition file.
-    
-        symbol = self.scanner.get_symbol()
-        return True
+        self.symbol, self.line, self.column = self.scanner.get_symbol(self.line,self.column)
+        guitest = False
+        if guitest:
+            return True
+        else:
+            self._spec()
+            self._print_all_errors()
 
     def _is_kw(self, kw_id: int) -> bool:
         return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
-
-    def _spec(self):
-        self._block()
-        while self._starts_block():
-            self._block()
     
-    #  EBNF   block       = devices | connections | monitors ;
-    def _block(self):
-        if self._is_kw(self.scanner.DEVICES):
+    #  EBNF   spec        = devices, connections, monitors ;
+    def _spec(self):
+        if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.DEVICES:
             self._devices()
-        elif self._is_kw(self.scanner.CONNECTIONS):
+        else:
+            self._error("Expected DEVICEES block")
+        if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECTIONS:
             self._connections()
-        elif self._is_kw(self.scanner.MONITOR):
+        else:
+            self._error("Expected CONNECTIONS block")
+        if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.MONITOR:
             self._monitors()
         else:
-            self._error("expected 'DEVICES', 'CONNECTIONS' or 'MONITOR'")
-            self._advance()
+            self._error("Expected MONITORS block")
 
-            #  EBNF   spec        = block , { block } ;
-    def _spec(self):
-        self._block()
-        while self._starts_block():
-            self._block()
-    
-    #  EBNF   block       = devices | connections | monitors ;
-    def _block(self):
-        if self._is_kw(self.scanner.DEVICES):
-            self._devices()
-        elif self._is_kw(self.scanner.CONNECTIONS):
-            self._connections()
-        elif self._is_kw(self.scanner.MONITOR):
-            self._monitors()
-        else:
-            self._error("expected 'DEVICES', 'CONNECTIONS' or 'MONITOR'")
-            self._advance()
     #  devices = "DEVICES" "{" dev { dev } "}" ;
     def _devices(self):
         self._expect(self.scanner.KEYWORD, self.scanner.DEVICES)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.OPENCURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         self._dev()
-        while self.symbol.type == self.scanner.NAME:
-            self._dev()
-        self._expect(self.scanner.CLOSECURLY)
+        
+        while self.symbol.type != self.scanner.CLOSECURLY:
+            if self.symbol.type == self.scanner.NAME:
+                self._dev()
+            else:
+                self._error("device identifier expected")
+                return False
 
-    #  dev = device_name { "." device_name } '=' device_type ';' ;
+        self.stopping_set = [self.scanner.CLOSECURLY]
+        self._expect(self.scanner.CLOSECURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        self.stopping_set = []
+
+    #  dev = device_name { "," device_name } '=' device_type ';' ;
     def _dev(self):
-        names: List[int] = [self._device_name()]  # first identifier consumed
+        #if an error flag is raised then need to not run the rest
+        names_list: List[int] = [self._device_name()]  # first identifier consumed
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         while self._accept(self.scanner.COMMA):
-            names.append(self._device_name())
+            names_list.append(self._device_name())
+            if self.error_flag:
+                self.error_flag = False
+                return False
+        
         self._expect(self.scanner.EQUALS)
-        dev_kind, param = self._device_type()
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
+        try:
+            dev_kind, param = self._device_type()
+        except:
+            return False
+        
         self._expect(self.scanner.SEMICOLON)
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        return True
         # ── semantic action here (e.g. create device(s))
         # for nm in names:
         #     self.devices.make_device(nm, dev_kind, param)
@@ -167,9 +211,8 @@ class Parser:
     def _device_type(self) -> Tuple[Optional[int], Optional[int]]:
         if self._is_kw(self.scanner.AND) or self._is_kw(self.scanner.NAND) or self._is_kw(self.scanner.NOR) or self._is_kw(self.scanner.OR):
             return self._gate()
-        elif self.symbol.type == self.scanner.NUMBER and self.symbol.id in (0, 1):
+        elif self._is_kw(self.scanner.SWITCH):
             return self._switch()
-        # double check if this is the implementation of switch
         elif self._is_kw(self.scanner.CLOCK):
             return self._clock()
         elif self._accept(self.scanner.KEYWORD, self.scanner.DTYPE):
@@ -178,80 +221,235 @@ class Parser:
             return (self.devices.XOR, None)
         else:
             self._error("invalid device type")
-            self._advance()
             return (None, None)
 
     #  gate = ( "AND" | "NAND" | "NOR" | "OR" ) '(' pin_number ')' ;
     def _gate(self):
+        # BUG - devices doesn't have a GATE attribute
         gate_kw = self.symbol.id  # remember which gate
         self._advance()
         self._expect(self.scanner.OPENBRAC)
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         pins = self._pin_number()
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._expect(self.scanner.CLOSEBRAC)
-        return (self.devices.GATE, (gate_kw, pins))
+        
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
+        return (gate_kw, pins)
 
-    #  switch = binary ;   binary = '0' | '1'
+    #  switch = "SWTICH", "(", binary, ")" ;   binary = '0' | '1';
     def _switch(self):
+        self._expect(self.scanner.KEYWORD, self.scanner.SWITCH)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
+        self._expect(self.scanner.OPENBRAC)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         value = self.symbol.id  # 0 or 1
+        if value not in [0, 1]:
+            self._error("Expected binary input")
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._advance()
+        self._expect(self.scanner.CLOSEBRAC)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         return (self.devices.SWITCH, value)
 
     #  clock = "CLOCK" '(' integer ')' ;
     def _clock(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CLOCK)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.OPENBRAC)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         period = self._integer()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.CLOSEBRAC)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         return (self.devices.CLOCK, period)
 
     # ─────────────────────────────────────────────────────── CONNECTIONS block
     #  connections = "CONNECTIONS" '{' con { con } '}' ;
+    # BUG - connections is not currently working, i will fix it on my next push
     def _connections(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CONNECTIONS)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.OPENCURLY)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
+        self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._con()
+
         while self.symbol.type == self.scanner.NAME:
             self._con()
+            
+        self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        self.stopping_set = []
 
     #  con = signal '->' signal ';' ;
     def _con(self):
-        left = self._signal()
+        output_signal = self._output_signal()
+        if not output_signal:
+            return False
         self._expect(self.scanner.ARROW)
-        right = self._signal()
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        input_signal = self._input_signal()
+        if not input_signal:
+            return False
         self._expect(self.scanner.SEMICOLON)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         # ── semantic action here (e.g. connect signals)
         # self.network.make_connection(left, right)
 
-    #  signal = device_name [ '.' pin_name ] ;
-    def _signal(self):
+    #  input_signal = device_name, ".", input_pin_name;
+    def _input_signal(self):
         dev = self._device_name()
-        pin: Optional[int] = None
-        if self._accept(self.scanner.FULLSTOP):
-            pin = self._pin_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        self._expect(self.scanner.FULLSTOP)
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        pin = self._input_pin_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
         return (dev, pin)
 
+    # output_signal = device_name, [".", output_pin_name];
+    def _output_signal(self):
+        dev = self._device_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        pin: Optional[int] = None
+        if self._accept(self.scanner.FULLSTOP):
+            pin = self._output_pin_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        return (dev, pin)
+    
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         self._expect(self.scanner.OPENCURLY)
-        self._signal()
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
+        self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
+        self._output_signal()
+
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
-                self._signal()
+                self._output_signal()
+            if self.error_flag:
+                self.error_flag = False
+                return False
+        self.stopping_set = [self.scanner.CLOSECURLY]
+        self._expect(self.scanner.SEMICOLON)
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.CLOSECURLY)
+        if self.error_flag:
+            self.error_flag = False
+            return False
+        self.stopping_set = []
 
     # ──────────────────────────────────────────────────────────── primitives
-    #  pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'Q' | 'QBAR' | 'I' pin_number ;
-    def _pin_name(self):
+    # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
+    def _input_pin_name(self):
+        if self.symbol.type in [self.scanner.NAME, self.scanner.KEYWORD]:
+            text = self.names.get_name_string(self.symbol.id).upper()
+            if text[0] == 'I':
+                # NOTE - This might be possible to do using pin number but
+                # it is easier to do like this as I16 is read as one symbol here
+                # whilst in AND(16), 16 is the symbol
+                num = text[1:]
+                if not num.isdigit():
+                    self._error("pin number expected")
+                    return (None, None)
+                num = int(num)
+                if not (1 <= num <= 16):
+                    self._error("pin number out of range (1‑16)")
+                    return (None, None)
+                self._advance()
+                return ('I', num)
+            elif text in ('DATA', 'SET', 'CLR', 'CLK'):
+                self._advance()
+                return (text, None)
+        self._error("invalid pin name")
+        return None
+
+    # output_pin_name = 'Q' | 'QBAR';
+    def _output_pin_name(self):
         if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
             text = self.names.get_name_string(self.symbol.id).upper()
-            self._advance()
-            if text == 'I':
-                num = self._pin_number()
-                return ('I', num)
-            elif text in ('DATA', 'SET', 'CLR', 'CLK', 'Q', 'QBAR'):
+            if text in ('Q', 'QBAR'):
                 return (text, None)
         self._error("invalid pin name")
         return None

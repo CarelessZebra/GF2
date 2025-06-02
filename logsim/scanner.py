@@ -54,6 +54,21 @@ class Scanner:
         self.file = open(path, 'r', encoding='utf-8')
         self.current_char = self.file.read(1)
         self.names = names
+<<<<<<< HEAD
+        self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
+                                 self.COMMA,  self.NUMBER, self.NAME, self.EOF,
+                                 self.ARROW, self.FULLSTOP, self.OPENCURLY, 
+                                 self.CLOSECURLY, self.OPENBRAC,self.CLOSEBRAC] = range(13)
+
+        # NOTE If you are adding a keyword, append it to this list
+        self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
+                              "AND", "OR", "NAND","NOR", "XOR", "DTYPE",
+                              "CLOCK", "SWITCH"]
+
+        # Add the new keyword here aswell
+        [self.DEVICES, self.CONNECTIONS, self.MONITOR,
+         self.AND, self.OR, self.NAND, self.XOR, self.DTYPE,
+=======
 
         # NOTE If you need to add a symbol type, increment the range
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
@@ -69,13 +84,18 @@ class Scanner:
         # Add the new keyword here aswell
         [self.DEVICES, self.CONNECTIONS, self.MONITOR,
          self.AND, self.OR, self.NAND,self.NOR, self.XOR, self.DTYPE,
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
          self.CLOCK, self.SWITCH] = self.names.lookup(self.keywords_list)
 
     def skip_whitespace(self, line, column):
         """Skip whitespace characters in the file."""
         # Skip whitespace characters
         while self.current_char.isspace() or self.current_char == '\n':
+<<<<<<< HEAD
+            # If we encounter a newline, reset the line and column counters
+=======
             # If we encounter a newline, reset column counter and increment line
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
             if self.current_char == '\n':
                 line += 1
                 column = 0
@@ -86,9 +106,14 @@ class Scanner:
 
     def skip_comments(self, line, column):
         """Skip comments in the file."""
+<<<<<<< HEAD
+        # skip single line comments
+        if self.current_char == '#':
+=======
         # Skip single line comments
         if self.current_char == '#':
             #single lines terminate with newline or EOF
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
             while self.current_char not in ('\n', ''):
                 self.current_char = self.file.read(1)
                 if self.current_char == '\n':
@@ -97,16 +122,32 @@ class Scanner:
                     self.current_char = self.file.read(1)
                     break
 
+<<<<<<< HEAD
+        # skip multi-line comments
+=======
         # Skip multi-line comments
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
         elif self.current_char == '/':
             next_char = self.file.read(1)
             if next_char == '*':
                 prev = None
+<<<<<<< HEAD
+                # consume until we see '*' followed by '/'
+=======
                 # Consume until we see '*' followed by '/'
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
                 while True:
                     self.current_char = self.file.read(1)
                     if self.current_char == '':
                         # EOF reached without closing comment
+<<<<<<< HEAD
+                        break
+                    # Track newlines
+                    if self.current_char == '\n':
+                        line += 1
+                        column = 0
+                    # if previous was '*' and current is '/', comment is closed
+=======
                         # TODO - This is an error so should be reported
                         break
                     # Track newlines
@@ -114,18 +155,25 @@ class Scanner:
                         line += 1
                         column = 0
                     # If previous was '*' and current is '/', comment is closed
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
                     if prev == '*' and self.current_char == '/':
                         # set current_char to the next character after '/'
                         self.current_char = self.file.read(1)
                         break
                     prev = self.current_char
+<<<<<<< HEAD
         print(self.current_char)
+=======
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
         return line, column
 
     def get_name(self, column):
         """Read a sequence of characters and return it as a string."""
         name = ''
+<<<<<<< HEAD
+=======
         # Names can only contain alphanumeric characters and underscores
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
         while self.current_char.isalnum() or self.current_char == '_':
             name += self.current_char
             column += 1
@@ -150,6 +198,7 @@ class Scanner:
         """Translate the next sequence of characters into a symbol."""
         symbol = Symbol()
         # skip whitespace and comments before reading the next character
+<<<<<<< HEAD
         print(column)
         line, column = self.skip_whitespace(line, column)
         print(column)
@@ -158,6 +207,11 @@ class Scanner:
         line, column = self.skip_whitespace(line, column)
         print(column)
         
+=======
+        line, column = self.skip_whitespace(line, column)
+        line, column = self.skip_comments(line, column)
+        line, column = self.skip_whitespace(line, column)
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
         symbol.line = line
         symbol.column = column
 
@@ -191,12 +245,18 @@ class Scanner:
         elif self.current_char == '}':
             symbol.type = self.CLOSECURLY
             column = self.advance(column)
-        elif self.current_char == '()':
+<<<<<<< HEAD
+=======
+        elif self.current_char == '(':
             symbol.type = self.OPENBRAC
             column = self.advance(column)
         elif self.current_char == ')':
             symbol.type = self.CLOSEBRAC
             column = self.advance(column)
+        elif self.current_char == '.':
+            symbol.type = self.FULLSTOP
+            column = self.advance(column)
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
         elif self.current_char == '-':
             column = self.advance(column)
             if self.current_char == '>':
@@ -222,7 +282,10 @@ class Scanner:
         """
         Print the line with a caret (^) underneath the character at error_pos.
         """
+<<<<<<< HEAD
+=======
         # TODO - Should this print an error message aswell?
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
         line_text = self.get_line(line)
         print(line_text)
         if 0 <= column < len(line_text):

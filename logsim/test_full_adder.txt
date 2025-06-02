@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Full Adder Circuit 
 
 DEVICES {
@@ -5,6 +6,15 @@ DEVICES {
     AND1, AND2, AND3     = AND(2);
     XOR1, XOR2           = XOR;
     OR                   = OR(3);
+=======
+# Full Adder Circuit #
+
+DEVICES {
+    A, B, C              = SWITCH(0);
+    AND1, AND2, AND3     = AND(2);
+    XOR1, XOR2           = XOR;
+    OR1                  = OR(3);
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
 }
 
 CONNECTIONS {
@@ -23,6 +33,7 @@ CONNECTIONS {
     XOR1 -> XOR2.I1;
     C   -> XOR2.I2;
 
+<<<<<<< HEAD
     AND1 -> OR.I1;
     AND2 -> OR.I2;
     AND3 -> OR.I3;
@@ -31,3 +42,14 @@ CONNECTIONS {
 MONITOR {
     XOR2, OR;
 }
+=======
+    AND1 -> OR1.I1;
+    AND2 -> OR1.I2;
+    AND3 -> OR1.I3;
+}
+
+MONITOR {
+    XOR2, OR1;
+}
+
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db

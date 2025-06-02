@@ -1,4 +1,7 @@
+<<<<<<< HEAD
+=======
 """Test the names module."""
+>>>>>>> 505c0dc091bc063d9721a46e67b895f7699b15db
 import pytest
 from names import Names
 
