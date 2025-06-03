@@ -160,3 +160,32 @@ def test_no_dev_errors_dtype(tmp_file):
         assert len(devices.get_device(nm_id).outputs) == 2
         #assert memory is not none
         assert devices.get_device(nm_id).dtype_memory in [0,1]
+
+@pytest.mark.parametrize("incorrect_content, error_msg",[
+    (" .= XOR;", "device identifier expected"),
+    ("A /= XOR;", "expected '='"),
+    ("A = XBOR;", "invalid device type"),
+    ("A, A = XOR;", "device identifier already used"),
+    ("A = SWITCH(2)", "Expected binary input"),
+    ("A = AND(a)", "pin number expected"),
+    ("A = AND(18)", "pin number out of range (1-16)"),
+    ("A = XOR(2)", "expected ';'")
+])
+def test_dev_correct_err_msg(tmp_file, capsys, incorrect_content, error_msg):
+    """Assert incorrect statements produce correct error messages"""
+    path = tmp_file(incorrect_content)
+    names, devices, network, monitors,scanner, parser = generate_parser(path)
+    #initialise symbol as done by parser parse_network method
+    parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
+    
+    #initialise dev_list as done by parse_network
+    parser.dev_list = []
+    parser._dev()
+    parser.stopping_set = [";"]
+    parser._print_all_errors()
+    assert parser.error_count == 1
+    #error recovery to end of the line
+    assert parser.symbol.type == scanner.EOF
+    #relevant error message printed
+    captout, capterrr = capsys.readouterr()
+    assert error_msg in captout

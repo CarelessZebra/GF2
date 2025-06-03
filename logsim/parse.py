@@ -222,9 +222,11 @@ class Parser:
             self.error_flag = False
             return False
 
-        try:
+        try: 
             dev_kind, param = self._device_type()
         except:
+            dev_kind, param = None, None
+        if (dev_kind, param) == (None, None):
             return False
 
         self._expect(self.scanner.SEMICOLON)
@@ -651,7 +653,7 @@ class Parser:
                     return (None, None)
                 num = int(num)
                 if not (1 <= num <= 16):
-                    self._error("pin number out of range (1‑16)")
+                    self._error("pin number out of range (1-16)")
                     return (None, None)
                 self._advance()
                 return ('I', num)
@@ -678,7 +680,7 @@ class Parser:
             return None
         value = self.symbol.id
         if not (1 <= value <= 16):
-            self._error("pin number out of range (1‑16)")
+            self._error("pin number out of range (1-16)")
         self._advance()
         return value
 
