@@ -239,7 +239,34 @@ def test_no_errors_con(tmp_file, correct_connection):
     #NOTE - Dermot: i want to add another assertion to check that make_connection was
     # called correctly but not sure how
     assert parser.error_count == 0
+    
     assert len(parser.input_con_list) == 1
+
+@pytest.mark.parametrize("incorrect_content, error_msg",[
+    (" -> B;", "device identifier expected"),
+    ("A -> ;", "device identifier expected"),
+    ("A.I1 -> B;", "invalid pin name"),
+    ("A -> AND1.I3;", "expected I1..I2 on device AND1"),
+    ("IDK -> A;", "device must be defined before use"),
+    ("A -> XOR1.I14;", "XOR devices only support I1 and I2 (got I14) on XOR1"),
+    ("A -> D1.I1", "DTYPE input pin must be DATA, SET, CLEAR or CLK (got I) on D1"),
+    ("C.Q -> AND1.I1", "C does not have an output pin named Q"),
+    ("A -> AND1.Iw", "pin number expected")
+])
+def test_con_correct_err_msg(tmp_file, incorrect_content, error_msg, capsys):
+    path = tmp_file(incorrect_content)
+    names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
+    parser.input_con_list = []
+    parser._con()
+    parser.stopping_set = [";"]
+    parser._print_all_errors()
+    assert parser.error_count == 1
+    #relevant error message printed
+    captout, capterrr = capsys.readouterr()
+    assert error_msg in captout
+    #error recovery to end of the line
+    assert parser.symbol.type == scanner.EOF
+
 
 
 

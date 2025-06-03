@@ -79,16 +79,21 @@ class Parser:
         self.error_count += 1
         self.error_flag = True
         # This is a very scuffed way of not printing error messages if we have already reached EOF
-        if self.symbol.type!=self.scanner.EOF:
-            self.errors.append((error_msg, self.symbol.line, self.symbol.column))
+        self.errors.append((error_msg, self.symbol.line, self.symbol.column))
+        #NOTE - The commented out bit doesn't solve the root cause which is that the parser
+        #should stop parsing if it gets to EOF, so recursive returns need to be improved.
+        #if self.symbol.type!=self.scanner.EOF:
+            #self.errors.append((error_msg, self.symbol.line, self.symbol.column))
             #print(f"Parser error (line {self.symbol.line}, col {self.symbol.column}): {message}")
-        else:
-            return
+        #else:
+        #    return
         while (self.symbol.type not in self.stopping_set and
                 self.symbol.type != self.scanner.EOF):
             self._advance()
         if self.symbol.type == self.scanner.EOF:
-            print("Error recovery was not possible, end of file reached")
+            #This is for debugging
+            #print("Error recovery was not possible, end of file reached")
+            pass
         else:
             self._advance()
 
@@ -459,28 +464,30 @@ class Parser:
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
         dev = self.symbol.id
-        if dev not in self.dev_list:
+        if dev not in self.dev_list and self.symbol.type == self.scanner.NAME:
             self._error("device must be defined before use")
             #print([self.names.get_name_string(i) for i in self.dev_list])
             self.error_flag = False
             return False
         dev = self._device_name()
-        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
-        
         if self.error_flag:
             self.error_flag = False
             return False
+        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
 
+        if self.error_flag:
+            self.error_flag = False
+            return False
         self._expect(self.scanner.FULLSTOP)
         if self.error_flag:
             self.error_flag = False
             return False
         pin = self._input_pin_name()
-
+        
         if self.error_flag:
             self.error_flag = False
             return False
-        #return (dev, pin)
+        
         pin_label, pin_index = pin
         pin_name = "".join([pin_label, str(pin_index)])
 
@@ -524,22 +531,27 @@ class Parser:
     # output_signal = device_name, [".", output_pin_name];
 
     def _output_signal(self):
+        """Checks output signal syntax output_signal = device_name, [".", output_pin_name];"""
         dev = self.symbol.id
-        if dev not in self.dev_list:
+        if dev not in self.dev_list and self.symbol.type == self.scanner.NAME:
             self._error("device must be defined before use")
             self.error_flag = False
             return False
         dev = self._device_name()
+        if self.error_flag:
+            self.error_flag = False
+            return False
 
         # Look up (kind, n_in, n_out) for this device
         kind, _, n_out = self.device_info.get(dev, (None, 0, 0))
 
         # If the user wrote “.something”
         if self._accept(self.scanner.FULLSTOP):
-            pin_label, _ = self._output_pin_name()
+            output_pin_name = self._output_pin_name()
             if self.error_flag:
                 self.error_flag = False
-                return False
+                return False#
+            pin_label, _ = output_pin_name
 
             # ── ADDED semantic check: only DTYPE can use Q/QBAR
             if kind == self.devices.D_TYPE:
@@ -554,7 +566,7 @@ class Parser:
                 # any other device has exactly one unnamed output, so “.Q” is illegal
                 self._error(
                     f"{self.names.get_name_string(dev)} "
-                    f"does not have an output pin named “{pin_label}”"
+                    f"does not have an output pin named {pin_label}"
                 )
                 self.error_flag = False
                 return False
@@ -582,6 +594,7 @@ class Parser:
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
+        """Checks monitors syntax and makes monitor for each signal"""
         self._expect(self.scanner.KEYWORD, self.scanner.MONITOR)
 
         if self.error_flag:
@@ -645,6 +658,7 @@ class Parser:
     # ──────────────────────────────────────────────────────────── primitives
     # input_pin_name = 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number ;
     def _input_pin_name(self):
+        """Checks input pin name is in 'DATA' | 'SET' | 'CLR' | 'CLK' | 'I' pin_number """
         if self.symbol.type in [self.scanner.NAME, self.scanner.KEYWORD]:
             text = self.names.get_name_string(self.symbol.id).upper()
             if text[0] == 'I':
@@ -669,6 +683,7 @@ class Parser:
 
     # output_pin_name = 'Q' | 'QBAR';
     def _output_pin_name(self):
+        """checks output pin name is Q or QBAR"""
         if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
             text = self.names.get_name_string(self.symbol.id).upper()
             if text in ('Q', 'QBAR'):
@@ -679,6 +694,7 @@ class Parser:
 
     #  pin_number 1–16 (inclusive)
     def _pin_number(self):
+        """Checks pin number is between 1 and 16 """
         if self.symbol.type != self.scanner.NUMBER:
             self._error("pin number expected")
             return None
@@ -690,6 +706,7 @@ class Parser:
 
     #  integer = non‑empty sequence of digits (scanner already returns NUMBER)
     def _integer(self):
+        """Checks integer = non‑empty sequence of digits (scanner already returns NUMBER)"""
         if self.symbol.type != self.scanner.NUMBER:
             self._error("integer expected")
             return 0
@@ -699,7 +716,7 @@ class Parser:
 
     #  device_name = NAME token
     def _device_name(self):
-
+        """Checks device_name = NAME token"""
         if self.symbol.type != self.scanner.NAME:
             self._error("device identifier expected")
             return None
