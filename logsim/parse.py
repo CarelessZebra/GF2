@@ -194,8 +194,6 @@ class Parser:
 
         names_list: List[int] = [self._device_name()]  # first identifier consumed
 
-        self.dev_list.append(name_id)  # add to device list
-
         if self.error_flag:
             self.error_flag = False
             return False
@@ -203,13 +201,12 @@ class Parser:
         while self._accept(self.scanner.COMMA):
 
             name_id = self.symbol.id  # remember the device name
-            if name_id in self.dev_list:
+            if name_id in names_list:
                 self._error("device identifier already used")
                 #print([self.names.get_name_string(i) for i in self.dev_list])
                 self.error_flag = False
                 return False
 
-            self.dev_list.append(name_id)  # add to device list
 
             names_list.append(self._device_name())
 
@@ -242,6 +239,7 @@ class Parser:
         #     self.devices.make_device(nm, dev_kind, param)
         #return True
         for nm in names_list:
+            self.dev_list.append(nm)  # add to device list if no errors occur
             if dev_kind in (
                 self.devices.AND,
                 self.devices.NAND,
@@ -281,122 +279,7 @@ class Parser:
                 print("make_device error", error)
 
         return True
-    """
-    def _dev(self):
-        #if an error flag is raised then need to not run the rest
-        name_id = self.symbol.id  # remember the device name
-        names_list: List[int] = [self._device_name()]  # first identifier consumed
-        
-        if name_id in self.dev_list:
-            self._error("device identifier already used")
-            #print([self.names.get_name_string(i) for i in self.dev_list])
-            self.error_flag = False
-            return 
-        
-
-        if name_id in self.dev_list:
-            # duplicate: report, then *skip* this name but keep parsing
-                self._error("device identifier already used")
-                self.error_flag = False
-                return False
-        else:
-                names_list.append(name_id)
-                self.dev_list.append(name_id)
-        
-        
-        
-        #self.dev_list.append(name_id)  # add to device list
-
-        if self.error_flag:
-            self.error_flag = False
-            return False
-        
-        while self._accept(self.scanner.COMMA):
-
-            name_id = self.symbol.id  # remember the device name
-            
-            if name_id in self.dev_list:
-                self._error("device identifier already used")
-                #print([self.names.get_name_string(i) for i in self.dev_list])
-                self.error_flag = False
-                return False
-            
-            if name_id in self.dev_list:
-                # duplicate: report, then *skip* this name but keep parsing
-                    self._error("device identifier already used")
-                    self.error_flag = False
-                    
-            else:
-                    names_list.append(name_id)
-                    self.dev_list.append(name_id)
-            
-        
-
-            self.dev_list.append(name_id)  # add to device list
-
-            names_list.append(self._device_name())
-            
-
-            if self.error_flag:
-                self.error_flag = False
-                return False
-            
-
-        
-        self._expect(self.scanner.EQUALS)
-        
-        if self.error_flag:
-            self.error_flag = False
-            return False
-        
-        try:
-            dev_kind, param = self._device_type()
-        except:
-            return False
-        
-        self._expect(self.scanner.SEMICOLON)
-        
-        if self.error_flag:
-            self.error_flag = False
-            return False
-        #return True
-        for nm in names_list:
-            if dev_kind in (
-                self.devices.AND,
-                self.devices.NAND,
-                self.devices.OR,
-                self.devices.NOR,
-            ):
-               # param is the number of inputs (from AND(N), etc.), 1 output
-                n_inputs = param
-                n_outputs = 1
-
-            elif dev_kind == self.devices.XOR:
-                # XOR devices always have exactly 2 inputs by spec, 1 output
-                n_inputs = 2
-                n_outputs = 1
-
-            elif dev_kind == self.devices.D_TYPE:
-                # D-flip-flop: 4 named inputs (DATA, SET, CLR, CLK), 2 outputs (Q, QBAR)
-                n_inputs = 4
-                n_outputs = 2
-
-            elif dev_kind == self.devices.SWITCH:
-                n_inputs  = 0
-                n_outputs = 1
-
-            elif dev_kind == self.devices.CLOCK:
-                n_inputs  = 0
-                n_outputs = 1
-
-            else:
-                # (If you add more device types in future, handle here)
-                n_inputs  = 0
-                n_outputs = 1
-
-            self.device_info[nm] = (dev_kind, n_inputs, n_outputs)
-
-    """
+    
     #  device_type = gate | switch | clock | "DTYPE" | "XOR" ;
     def _device_type(self) -> Tuple[Optional[int], Optional[int]]:
         if self._is_kw(self.scanner.AND) or self._is_kw(self.scanner.NAND) or self._is_kw(self.scanner.NOR) or self._is_kw(self.scanner.OR):
@@ -567,15 +450,14 @@ class Parser:
 
     #  input_signal = device_name, ".", input_pin_name;
     def _input_signal(self):
-        dev = self._device_name()
-        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
-
+        dev = self.symbol.id
         if dev not in self.dev_list:
             self._error("device must be defined before use")
             #print([self.names.get_name_string(i) for i in self.dev_list])
             self.error_flag = False
             return False
-
+        dev = self._device_name()
+        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
 
         if self.error_flag:
             self.error_flag = False
@@ -632,11 +514,12 @@ class Parser:
     # output_signal = device_name, [".", output_pin_name];
 
     def _output_signal(self):
-        dev = self._device_name()
+        dev = self.symbol.id
         if dev not in self.dev_list:
             self._error("device must be defined before use")
             self.error_flag = False
             return False
+        dev = self._device_name()
 
         # Look up (kind, n_in, n_out) for this device
         kind, _, n_out = self.device_info.get(dev, (None, 0, 0))
