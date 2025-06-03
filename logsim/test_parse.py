@@ -1,6 +1,4 @@
 """Test the parse module.
-It might be better to add a fixture for generating scanner, 
-network, monitors, and parser from content
 """
 
 import pytest
@@ -12,6 +10,16 @@ from devices import Devices
 from monitors import Monitors
 from network import Network
 
+def generate_parser(path):
+    names = Names()
+    scanner = Scanner(path, names)
+    #initiate objects
+    devices = Devices(names)
+    network = Network(names, devices)
+    monitors = Monitors(names, devices, network)
+    #create parser
+    parser = Parser(names, devices, network, monitors, scanner)
+    return names, devices, network, monitors, scanner, parser
 #copied from test_scanner
 @pytest.fixture
 def tmp_file(tmp_path):
@@ -31,17 +39,10 @@ def tmp_file(tmp_path):
 ])
 def test_dev_no_errors_16_input_gates(tmp_file, device_type):
     """Test that _dev() parses content correctly for 1 to 16 gates"""
-    names = Names()
     #Line to be checked
     content = f"A, B, C = {device_type}(16);"
     path = tmp_file(content)
-    scanner = Scanner(path, names)
-    #initiate objects
-    devices = Devices(names)
-    network = Network(names, devices)
-    monitors = Monitors(names, devices, network)
-    #create parser
-    parser = Parser(names, devices, network, monitors, scanner)
+    names, devices, network, monitors,scanner, parser = generate_parser(path)
     #initialise symbol as done by parser parse_network method
     parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
     #initialise dev_list as done by parse_network
@@ -62,17 +63,10 @@ def test_dev_no_errors_16_input_gates(tmp_file, device_type):
 
 def test_no_dev_errors_switch(tmp_file):
     """Test that _dev parses content correctly for SWITCH statement"""
-    names = Names()
     #Line to be checked
     content = "A, B, C = SWITCH(1);"
     path = tmp_file(content)
-    scanner = Scanner(path, names)
-    #initiate objects
-    devices = Devices(names)
-    network = Network(names, devices)
-    monitors = Monitors(names, devices, network)
-    #create parser
-    parser = Parser(names, devices, network, monitors, scanner)
+    names, devices, network, monitors,scanner, parser = generate_parser(path)
     #initialise symbol as done by parser parse_network method
     parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
     #initialise dev_list as done by parse_network
@@ -93,17 +87,10 @@ def test_no_dev_errors_switch(tmp_file):
 
 def test_no_dev_errors_clock(tmp_file):
     """Test that _dev parses content correctly for CLOCK statement"""
-    names = Names()
     #Line to be checked
     content = "A, B, C = CLOCK(100);"
     path = tmp_file(content)
-    scanner = Scanner(path, names)
-    #initiate objects
-    devices = Devices(names)
-    network = Network(names, devices)
-    monitors = Monitors(names, devices, network)
-    #create parser
-    parser = Parser(names, devices, network, monitors, scanner)
+    names, devices, network, monitors,scanner, parser = generate_parser(path)
     #initialise symbol as done by parser parse_network method
     parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
     #initialise dev_list as done by parse_network
@@ -124,17 +111,10 @@ def test_no_dev_errors_clock(tmp_file):
 
 def test_no_dev_errors_xor(tmp_file):
     """Test that _dev parses content correctly for XOR statement"""
-    names = Names()
     #Line to be checked
     content = "A, B, C = XOR;"
     path = tmp_file(content)
-    scanner = Scanner(path, names)
-    #initiate objects
-    devices = Devices(names)
-    network = Network(names, devices)
-    monitors = Monitors(names, devices, network)
-    #create parser
-    parser = Parser(names, devices, network, monitors, scanner)
+    names, devices, network, monitors,scanner, parser = generate_parser(path)
     #initialise symbol as done by parser parse_network method
     parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
     #initialise dev_list as done by parse_network
@@ -156,17 +136,10 @@ def test_no_dev_errors_xor(tmp_file):
 
 def test_no_dev_errors_dtype(tmp_file):
     """Test that _dev parses content correctly for DTYPE statement"""
-    names = Names()
     #Line to be checked
     content = "A, B, C = DTYPE;"
     path = tmp_file(content)
-    scanner = Scanner(path, names)
-    #initiate objects
-    devices = Devices(names)
-    network = Network(names, devices)
-    monitors = Monitors(names, devices, network)
-    #create parser
-    parser = Parser(names, devices, network, monitors, scanner)
+    names, devices, network, monitors,scanner, parser = generate_parser(path)
     #initialise symbol as done by parser parse_network method
     parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
     #initialise dev_list as done by parse_network
