@@ -31,6 +31,8 @@ def tmp_file(tmp_path):
         return str(file_path)
     return _create_file
 
+
+#_dev tests
 @pytest.mark.parametrize("device_type" ,[
     ("AND"),
     ("OR"),
@@ -189,3 +191,60 @@ def test_dev_correct_err_msg(tmp_file, capsys, incorrect_content, error_msg):
     #relevant error message printed
     captout, capterrr = capsys.readouterr()
     assert error_msg in captout
+
+def generate_parser_with_existing_devices(path):
+    """Generate a parser with some existing devices for connections testing"""
+    names = Names()
+    scanner = Scanner(path, names)
+    #initiate objects
+    devices = Devices(names)
+    network = Network(names, devices)
+    monitors = Monitors(names, devices, network)
+    #create parser
+    parser = Parser(names, devices, network, monitors, scanner)
+    name_str_list = ["A", "B", "C", "AND1", "XOR1", "D1"]
+    name_ids = names.lookup(name_str_list)
+    dev_kinds = [devices.SWITCH, devices.SWITCH, devices.CLOCK, devices.AND, devices.XOR, devices.D_TYPE]
+    dev_params = [0,1,100,2,None,None]
+    n_inputs = [None, None, None, 2, 2, 4]
+    n_outputs = [1,1,1,1,1,2]
+    #initialise symbol as done by parser parse_network method
+    parser.symbol, parser.line, parser.column = parser.scanner.get_symbol(parser.line,parser.column)
+    parser.dev_list = []
+    for i in range(len(name_ids)):
+        devices.make_device(name_ids[i], dev_kinds[i], dev_params[i])
+        #The list is clearly redundant
+        parser.dev_list.append(name_ids[i])
+        parser.device_info[name_ids[i]] = (dev_kinds[i], n_inputs[i],n_outputs[i])
+    return names, devices, network, monitors, scanner, parser
+
+#_con tests
+@pytest.mark.parametrize("correct_connection", [
+    ("A -> AND1.I1;"),
+    ("B -> AND1.I2;"),
+    ("C -> D1.SET;"),
+    ("D1.QBAR -> D1.CLK;"),
+    ("D1.Q -> D1.DATA;"),
+    ("C -> D1.CLEAR;")
+])
+def test_no_errors_con(tmp_file, correct_connection):
+    """assert correct connection statements produce no errors 
+    and that connections are made correctly"""
+    #create some existing devices
+    
+    path = tmp_file(correct_connection)
+    names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
+    parser.input_con_list = []
+    parser._con()
+    #NOTE - Dermot: i want to add another assertion to check that make_connection was
+    # called correctly but not sure how
+    assert parser.error_count == 0
+    assert len(parser.input_con_list) == 1
+
+
+
+    
+
+
+
+    

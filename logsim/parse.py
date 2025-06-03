@@ -143,14 +143,17 @@ class Parser:
             self._devices()
         else:
             self._error("Expected DEVICES block")
+            return
         if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECTIONS:
             self._connections()
         else:
             self._error("Expected CONNECTIONS block")
+            return
         if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.MONITOR:
             self._monitors()
         else:
             self._error("Expected MONITORS block")
+            return
 
     #  devices = "DEVICES" "{" dev { dev } "}" ;
     def _devices(self):
@@ -376,7 +379,6 @@ class Parser:
 
     # ─────────────────────────────────────────────────────── CONNECTIONS block
     #  connections = "CONNECTIONS" '{' con { con } '}' ;
-    # BUG - connections is not currently working, i will fix it on my next push
     def _connections(self):
         self._expect(self.scanner.KEYWORD, self.scanner.CONNECTIONS)
 
@@ -409,11 +411,12 @@ class Parser:
 
     #  con = signal '->' signal ';' ;
     def _con(self):
-        
+        """Syntax/semantic checks for each connection statement"""
         output_signal = self._output_signal()
+
         if not output_signal:
             return False
-
+        
         self._expect(self.scanner.ARROW)
         if self.error_flag:
             self.error_flag = False
@@ -463,17 +466,17 @@ class Parser:
             return False
         dev = self._device_name()
         kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
-
+        
         if self.error_flag:
             self.error_flag = False
             return False
-
 
         self._expect(self.scanner.FULLSTOP)
         if self.error_flag:
             self.error_flag = False
             return False
         pin = self._input_pin_name()
+
         if self.error_flag:
             self.error_flag = False
             return False
@@ -492,6 +495,7 @@ class Parser:
                 self._error(f"expected I1..I{n_in} on device {self.names.get_name_string(dev)}")
                 self.error_flag = False
                 return False
+            
 
         elif kind == self.devices.XOR:
             # XOR only permits I1 or I2
@@ -507,7 +511,7 @@ class Parser:
                 self.error_flag = False
                 return False
             return (dev, pin_label)
-
+            
         else:
             # SWITCH & CLOCK have no named input pins
             self._error(f"device {self.names.get_name_string(dev)} has no input pins")
