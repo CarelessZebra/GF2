@@ -1,3 +1,4 @@
+"""This is a reproduction of an error with scanner that means print_error_line should only be called after all the file has been read"""
 from names import Names
 from scanner import Scanner
 
