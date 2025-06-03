@@ -1,0 +1,32 @@
+# Shift register circuit
+
+DEVICES {
+    D_IN = CLOCK(20);
+    CLK1  = CLOCK(1);
+    SET1  = SWITCH(1);
+    CLR1  = SWITCH(1);
+    D1,D2,D3,D4 = DTYPE;
+}
+
+CONNECTIONS {
+    D_IN -> D1.DATA;
+    SET1  -> D1.SET;
+    CLR1  -> D1.CLEAR;
+    CLK1  -> D1.CLK;
+    D1.Q -> D2.DATA;
+    SET1  -> D2.SET;
+    CLR1  -> D2.CLEAR;
+    CLK1  -> D2.CLK;
+    
+    D2.Q -> D3.DATA;
+    SET1  -> D3.SET;
+    CLR1  -> D3.CLEAR;
+    CLK1  -> D3.CLK;
+
+    D3.Q -> D4.DATA;
+    SET1  -> D4.SET;
+    CLR1  -> D4.CLEAR;
+    CLK1  -> D4.CLK;
+}
+
+MONITOR {CLK1, D_IN, D1.Q, D2.Q, D3.Q, D4.Q;}

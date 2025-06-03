@@ -440,11 +440,14 @@ class Parser:
             # Adi I don't know what your extra variable is
             out_dev_id, (out_pin, some_variable) = output_signal
             out_pin = self.names.query(out_pin)
-            if out_pin != "O":
+            
+            if out_pin != self.names.query("O"):
                 error = self.network.make_connection(out_dev_id, out_pin, in_dev_id, in_pin)
             else:
                 error = self.network.make_connection(out_dev_id, None,in_dev_id, in_pin)
             if error!=self.network.NO_ERROR:
+                #print(self.devices.get_device(out_dev_id).device_kind, out_pin)
+                #print(self.devices.get_device(in_dev_id).device_kind, in_pin)
                 print("Make_connections error:", error)
 
 
@@ -496,11 +499,12 @@ class Parser:
                 return False
 
         elif kind == self.devices.D_TYPE:
-            # DTYPE’s inputs must be DATA / SET / CLR / CLK
-            if pin_label not in ("DATA", "SET", "CLR", "CLK"):
-                self._error(f"DTYPE input pin must be DATA, SET, CLR or CLK (got {pin_label}) on {self.names.get_name_string(dev)}")
+            # DTYPE’s inputs must be DATA / SET / CLEAR / CLK
+            if pin_label not in ("DATA", "SET", "CLEAR", "CLK"):
+                self._error(f"DTYPE input pin must be DATA, SET, CLEAR or CLK (got {pin_label}) on {self.names.get_name_string(dev)}")
                 self.error_flag = False
                 return False
+            return (dev, pin_label)
 
         else:
             # SWITCH & CLOCK have no named input pins
@@ -569,53 +573,6 @@ class Parser:
         # Implicit single output:
         return (dev, ("O", None))
 
-    """
-    def _output_signal(self):
-        dev = self._device_name()
-        kind, n_in, n_out = self.device_info.get(dev, (None, 0, 0))
-
-        if dev not in self.dev_list:
-            self._error("device must be defined before use")
-            #print([self.names.get_name_string(i) for i in self.dev_list])
-            self.error_flag = False
-            return False
-
-        if self.error_flag:
-            self.error_flag = False
-            return False
-        
-        pin: Optional[Tuple[str, int]] = None
-        if self._accept(self.scanner.FULLSTOP):
-            pin = self._output_pin_name()
-        if self.error_flag:
-            self.error_flag = False
-            return False
-        #return (dev, pin)
-
-        pin_label, _ = pin
-        # ─────────────────────────────────────────────────
-        # → ADDED: enforce output-pin rules
-        if kind == self.devices.D_TYPE:
-            # only Q or QBAR allowed
-            if pin_label not in ("Q", "QBAR"):
-                self._error(f"DTYPE output pin must be Q or QBAR (got {pin_label}) on {self.names.get_name_string(dev)}")
-                return False
-        else:
-            # any other device has exactly one implicit output → ".Q" is illegal
-            self._error(f"{self.names.get_name_string(dev)} does not have an output pin named “{pin_label}”")
-            return False
-
-        return (dev, (pin_label, None))
-
-        # No ".pin" was written: allowed only if this device has exactly one output
-        if n_out != 1:
-            self._error(f"{self.names.get_name_string(dev)} requires an explicit output pin name (Q or QBAR).")
-            return False
-
-        # otherwise, implicit single output:
-        return (dev, ("O", None))
-    """
-    
     # ───────────────────────────────────────────────────────── MONITOR block
     #  monitors = "MONITOR" '{' signal { ',' signal } ';' '}' ;
     def _monitors(self):
@@ -698,7 +655,7 @@ class Parser:
                     return (None, None)
                 self._advance()
                 return ('I', num)
-            elif text in ('DATA', 'SET', 'CLR', 'CLK'):
+            elif text in ('DATA', 'SET', 'CLEAR', 'CLK'):
                 self._advance()
                 return (text, None)
         self._error("invalid pin name")
@@ -709,6 +666,7 @@ class Parser:
         if self.symbol.type in (self.scanner.NAME, self.scanner.KEYWORD):
             text = self.names.get_name_string(self.symbol.id).upper()
             if text in ('Q', 'QBAR'):
+                self._advance()
                 return (text, None)
         self._error("invalid pin name")
         return None
@@ -743,48 +701,3 @@ class Parser:
         self._advance()
         return name_id
 
-
-    """
-        def non_terminal_symbol(symbol, expected):
-            Check if the symbol is a non-terminal symbol.
-            if symbol != expected:
-                self.scanner.error(f"Expected {expected}, got {symbol}")
-                return False
-            return True
-        return True
-
-        def con(self):      
-            self.scanner.NAME
-            if self.scanner.get_symbol().type == self.scanner.ARROW:
-                self.symbol = self.scanner.get_symbol()
-                self.symbol.NAME
-            elif self.scanner.get_symbol().type == self.scanner.SEMICOLON:
-                self.symbol = self.scanner.get_symbol()
-                self.symbol.NAME               
-            else:
-                self.error()
-                #return False
-
-        def connections(self):
-            if (self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.CONNECT_ID):
-                self.symbol = self.scanner.get_symbol()
-
-                if self.symbol.type == self.scanner.OPENCURLY:
-                    self.symbol = self.scanner.get_symbol()
-                    self.con()
-                    while self.symbol.type == self.scanner.COMMA:
-                        self.symbol = self.scanner.get_symbol()
-                        self.con()        
-                
-                if self.symbol.type == self.scanner.SEMICOLON:
-                    self.symbol = self.scanner.get_symbol()
-                else:
-                    self.error()
-                    #return False
-            else:
-                self.error()
-                #return False    
-
-        """
-    #if out of scanner = "NAME"
-    # LOOK AT NEXT SYMBOL = "ARROW"
