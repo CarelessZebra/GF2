@@ -103,6 +103,22 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         # Clear everything
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
+        size = self.GetClientSize()
+        width = size.width
+        height = size.height
+        padding_x = 50
+        padding_y = 30
+
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glLoadIdentity()
+
+        num_signals = len(self.monitors.monitors_dictionary)
+        trace_length = max((len(v) for v in self.monitors.monitors_dictionary.values()), default=1)
+
+        signal_height = (height - 2*padding_y) / (num_signals + 1)
+        x_step = (width - 2*padding_x) / max(trace_length, 1)
+
         # Draw a all trace signals
         j = 0
         for key in self.monitors.monitors_dictionary:
@@ -110,13 +126,12 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             GL.glColor3f(0.0, 0.0, 1.0)
             GL.glBegin(GL.GL_LINE_STRIP)
 
-            # Compute base Y position
-            y_base = 75 + j * 50
-            y_high = 100 + j * 50
+            y_base = padding_y + (j + 1) * signal_height - 10
+            y_high = y_base - 20
 
             for i in range(len(trace)):
-                x = (i*20) + 50
-                x_next = ((i+1)*20) + 50
+                x = padding_x + i * x_step
+                x_next = padding_x+ (i + 1) * x_step
                 y = int(trace[i])
                 if y == 0:
                     y = y_base
@@ -128,20 +143,20 @@ class MyGLCanvas(wxcanvas.GLCanvas):
 
             # Draw time axis below trace
             GL.glColor3f(0.6, 0.6, 0.6)  # Grey color for axis
-            axis_y = y_base + 20 - 25
+            axis_y = y_base - 25
             GL.glBegin(GL.GL_LINES)
-            GL.glVertex2f(50, axis_y)
-            GL.glVertex2f(50 + len(trace) * 20, axis_y)
+            GL.glVertex2f(padding_x, axis_y)
+            GL.glVertex2f(width-padding_x, axis_y)
             GL.glEnd()
 
             # Draw ticks and labels
             for i in range(len(trace)):
-                tick_x = (i * 20) + 50
+                tick_x = padding_x + i * x_step
                 GL.glBegin(GL.GL_LINES)
                 GL.glVertex2f(tick_x, axis_y - 3)
                 GL.glVertex2f(tick_x, axis_y + 3)
                 GL.glEnd()
-                self.render_text(str(i), tick_x - 5, axis_y + 5)
+                self.render_text(str(i), tick_x - 5, axis_y - 15)
 
             # Draw device name to the left of trace
             name = self.names.get_name_string(key[0])
@@ -176,6 +191,9 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         # Forces reconfiguration of the viewport, modelview and projection
         # matrices on the next paint event
         self.init = False
+        self.Refresh()     # Trigger repaint
+        event.Skip()
+        
 
     def on_mouse(self, event):
         """Handle mouse events."""
@@ -320,6 +338,10 @@ class Gui(wx.Frame):
 
         self.SetSizeHints(600, 600)
         self.SetSizer(main_sizer)
+        
+        self.run_network(10)  # Run the network for 10 cycles on startup
+        self.output_text.SetLabel("")
+
 
     def on_menu(self, event):
         """Handle the event when the user selects a menu item."""
@@ -439,13 +461,8 @@ class Gui(wx.Frame):
         for _ in range(N):
             if self.network.execute_network():
                 self.monitors.record_signals()
-        monitors_dictionary = self.monitors.monitors_dictionary
-        trace_count = len(monitors_dictionary)
-        trace_length = len(next(iter(monitors_dictionary.values()), []))
-        print(monitors_dictionary)
         self.canvas.render()
         self.successful_command()
-        return True
 
 
     def continue_command(self, N):
