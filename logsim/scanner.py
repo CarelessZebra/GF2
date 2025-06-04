@@ -58,24 +58,26 @@ class Scanner:
         # NOTE If you need to add a symbol type, increment the range
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
                                  self.COMMA,  self.NUMBER, self.NAME, self.EOF,
-                                 self.ARROW, self.FULLSTOP, self.OPENCURLY, 
-                                 self.CLOSECURLY, self.OPENBRAC,self.CLOSEBRAC] = range(13)
+                                 self.ARROW, self.FULLSTOP, self.OPENCURLY,
+                                 self.CLOSECURLY, self.OPENBRAC,
+                                 self.CLOSEBRAC] = range(13)
 
         # NOTE If you are adding a keyword, append it to this list
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
-                              "AND", "OR", "NAND","NOR", "XOR", "DTYPE",
+                              "AND", "OR", "NAND", "NOR", "XOR", "DTYPE",
                               "CLOCK", "SWITCH"]
 
         # Add the new keyword here aswell
         [self.DEVICES, self.CONNECTIONS, self.MONITOR,
-         self.AND, self.OR, self.NAND,self.NOR, self.XOR, self.DTYPE,
+         self.AND, self.OR, self.NAND, self.NOR, self.XOR, self.DTYPE,
          self.CLOCK, self.SWITCH] = self.names.lookup(self.keywords_list)
 
     def skip_whitespace(self, line, column):
         """Skip whitespace characters in the file."""
         # Skip whitespace characters
         while self.current_char.isspace() or self.current_char == '\n':
-            # If we encounter a newline, reset column counter and increment line
+            # If we encounter a newline, reset column counter
+            # and increment line
             if self.current_char == '\n':
                 line += 1
                 column = 0
@@ -88,7 +90,7 @@ class Scanner:
         """Skip comments in the file."""
         # Skip single line comments
         if self.current_char == '#':
-            #single lines terminate with newline or EOF
+            # single lines terminate with newline or EOF
             while self.current_char not in ('\n', ''):
                 self.current_char = self.file.read(1)
                 if self.current_char == '\n':
@@ -107,7 +109,6 @@ class Scanner:
                     self.current_char = self.file.read(1)
                     if self.current_char == '':
                         # EOF reached without closing comment
-                        # TODO - This is an error so should be reported
                         break
                     # Track newlines
                     if self.current_char == '\n':
@@ -212,17 +213,16 @@ class Scanner:
         self.file.seek(0)  # Reset file pointer to the beginning
         for current_line_number, line in enumerate(self.file, start=1):
             if current_line_number == line_number:
-                return line.rstrip('\n')  # Return the line without trailing newline
+                # Return the line without trailing newline
+                return line.rstrip('\n')
         return None  # If the line number is out of range
 
     def print_error_line(self, line, column):
-        """
-        Print the line with a caret (^) underneath the character at error_pos.
-        """
-        # TODO - Should this print an error message aswell?
+        """Print the line with a caret (^) underneath the character at error_pos."""
         line_text = self.get_line(line)
         print(line_text)
-        if 0 <= column < len(line_text):
-            print(" " * (column)+ "^")
+        if 0 <= column and column < len(line_text):
+            print(" " * (column) + "^")
         else:
-            print(" " * len(line_text.rstrip()) + "^ (error position out of bounds)")
+            print(" " * len(line_text.rstrip())
+                  + "^ (error position out of bounds)")
