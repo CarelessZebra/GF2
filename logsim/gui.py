@@ -349,7 +349,7 @@ class Gui(wx.Frame):
         if Id == wx.ID_EXIT:
             self.Close(True)
         if Id == wx.ID_HELP_COMMANDS:
-            self.display_help()
+            self.help_command()
 
         if Id == wx.ID_ABOUT:
             wx.MessageBox("Logic Simulator\nCreated by Team 1\n2025",
