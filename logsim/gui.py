@@ -237,7 +237,7 @@ class Gui(wx.Frame):
         fileMenu.Append(wx.ID_ABOUT, "&About")
         fileMenu.Append(wx.ID_HELP_COMMANDS, 'Help')
         fileMenu.Append(wx.ID_EXIT, "&Exit")
-        menuBar.Append(fileMenu, "&File")
+        menuBar.Append(fileMenu, "&Menu")
         self.SetMenuBar(menuBar)
 
         # Canvas for drawing signals
@@ -247,13 +247,23 @@ class Gui(wx.Frame):
         self.text = wx.StaticText(self, wx.ID_ANY, "Cycles")
         self.spin = wx.SpinCtrl(self, wx.ID_ANY, "10")
         self.run_button = wx.Button(self, wx.ID_ANY, "Run")
+        self.output_text = wx.StaticText(self, wx.ID_ANY, "output",style=wx.TE_READONLY| wx.TE_MULTILINE)
         self.text_box = wx.TextCtrl(self, wx.ID_ANY, "",
                                     style=wx.TE_PROCESS_ENTER)
+        
+        #Initial simulation variables
+        self.names = names
+        self.devices = devices
+        self.monitors = monitors
+        self.network = network
+        self.cycles_completed = 0 
+        self.cycles = 0
 
         # Bind events to widgets
         self.Bind(wx.EVT_MENU, self.on_menu)
         self.spin.Bind(wx.EVT_SPINCTRL, self.on_spin)
         self.run_button.Bind(wx.EVT_BUTTON, self.on_run_button)
+        # add text under the run button
         self.text_box.Bind(wx.EVT_TEXT_ENTER, self.on_text_box)
 
         # Configure sizers for layout
@@ -267,6 +277,7 @@ class Gui(wx.Frame):
         side_sizer.Add(self.spin, 1, wx.ALL, 5)
         side_sizer.Add(self.run_button, 1, wx.ALL, 5)
         side_sizer.Add(self.text_box, 1, wx.ALL, 5)
+        side_sizer.Add(self.output_text, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizeHints(600, 600)
         self.SetSizer(main_sizer)
@@ -291,24 +302,215 @@ class Gui(wx.Frame):
 
     def on_run_button(self, event):
         """Handle the event when the user clicks the run button."""
+        spin_value = self.spin.GetValue()
+        self.run_command(str(spin_value))
         text = "Run button pressed."
         self.canvas.render(text)
 
     def on_text_box(self, event):
         """Handle the event when the user enters text."""
-        text_box_value = self.text_box.GetValue()
-        text = text_box_value.strip()
-        if text == "h":
-            self.display_help()
-        elif text == "q":
-            self.Close(True)
-        
-        else:
-            text = "".join(["Text entered: ", text])
-        self.canvas.render(text)
+        text = self.text_box.GetValue().split()
 
-    def display_help(self):
+        if len(text) == 0:
+            self.empty_input()
+        elif len(text) == 1:
+            if text[0] == "h":
+                self.help_command()
+            elif text[0] == "q":
+                self.Close(True)
+            else:
+                self.invalid_command()
+        elif len(text) == 2:
+            if text[0] == "m":
+                self.monitor_command(text[1])
+            elif text[0] == "z":
+                self.zap_command(text[1])
+            elif text[0] == "r":
+                self.run_command(text[1])
+            elif text[0] == "c":
+                self.continue_command(text[1])
+            else:
+                self.invalid_command()    
+        elif len(text) == 3:
+            if text[0] == "s":
+                self.switch_command(text[1], text[2])
+            else:
+                self.invalid_command()
+        else:
+            self.invalid_command()
+
+
+
+
+    def help_command(self):
         """Display the help text in a message box."""
         with open("Help.txt", "r") as file:
             help_text = file.read()
+        self.output_text.SetLabel("")
         wx.MessageBox(help_text, "Help", wx.ICON_INFORMATION | wx.OK)
+
+    def monitor_command(self, text):
+        """Set the specified monitor."""
+        monitor = self.read_signal_name(text)
+        if monitor is None:
+            self.invalid_device_id()
+        else:
+            [device, port] = monitor
+            monitor_error = self.monitors.make_monitor(device, port,
+                                                       self.cycles_completed)
+            if monitor_error == self.monitors.NO_ERROR:
+                self.successful_command()
+            else:
+                self.unsuccessful_command()
+        self.run_command(str(self.cycles))
+    
+
+    def zap_command(self, text):
+        """Remove the specified monitor."""
+        monitor = self.read_signal_name(text)
+        if monitor is None:
+            self.invalid_device_id()
+        else:
+            [device, port] = monitor
+            if self.monitors.remove_monitor(device, port):
+                self.successful_command()
+            else:
+                self.unsuccessful_command()
+        self.run_command(str(self.cycles))
+    
+    def run_command(self, N):
+        """Run the simulation from scratch."""
+        if not(N.isdigit()):
+            self.invalid_cycles()
+            return
+        N = int(N)
+        self.cycles = N
+        self.cycles_completed = 0 
+        self.monitors.reset_monitors()
+        self.devices.cold_startup()
+        if self.run_network(N):
+                self.cycles_completed += N
+    
+    def run_network(self, N):
+        """Run the network for N cycles and draw the signal traces.
+
+        Return True if succesful.
+        """
+        monitors_dictionary = self.monitors.monitors_dictionary
+        for monitor in monitors_dictionary:
+            continue
+        self.successful_command()
+        return True
+
+
+    def continue_command(self, N):
+        """Continue the simulation for N more cycles."""
+        if not(N.isdigit()):
+            self.invalid_cycles()
+            return
+        self.cycles += int(N)
+        self.run_command(str(self.cycles))
+
+    def switch_command(self, device, new_value):
+        """Set the specified switch to the specified signal level."""
+        return True
+
+
+
+
+
+
+
+ 
+
+    def read_name(self, text):
+        """Return the name ID of the current string if valid.
+
+        Return None if the current string is not a valid name string.
+        """
+        name_string = text.split(".")[0] 
+        if name_string is None :
+            self.invalid_device_id()
+            return None
+        elif not(name_string[0].isalpha()):
+            self.invalid_device_id()
+            return None
+        else:
+            name_id = self.names.query(name_string)
+        if name_id is None:
+            self.invalid_device_id()
+            return None
+        return name_id
+
+    def read_signal_name(self,text):
+        """Return the device and port IDs of the current signal name.
+
+        Return None if either is invalid.
+        """
+        name_string = text.split(".")
+        name_id = self.read_name(text) # Already checked for validity
+        if name_id is None:
+            return None
+        if len(name_string) == 1:
+            return [name_id, None]
+        if len(name_string) != 2:
+            self.invalid_device_id()
+            return None
+        port_id = name_string[1]
+        if port_id is None:
+            self.invalid_port_id()
+            return
+        return [name_id, port_id]
+
+    def read_value(self, text):
+        """Return the value of the current signal.
+
+        Return None if the value is invalid.
+        """
+        if text.isdigit():
+            return int(text)
+        elif text.lower() in ["true", "false"]:
+            return text.lower() == "true"
+        else:
+            self.invalid_value()
+            return None
+
+
+
+
+
+
+
+
+
+    def invalid_command(self):
+        """Display an error message for invalid input."""
+        self.output_text.SetLabel("Invalid command. Enter 'h' for help.")
+
+    def invalid_cycles(self):
+        """Display an error message for invalid cycle input."""
+        self.output_text.SetLabel("Number of cycles must be an integer. Enter 'h' for help.")
+
+    def invalid_device_id(self):
+        """Display an error message for invalid device ID."""
+        self.output_text.SetLabel("Invalid device ID. Enter 'h' for help.")
+    
+    def invalid_port_id(self):
+        """Display an error message for invalid port ID."""
+        self.output_text.SetLabel("Invalid port ID. Enter 'h' for help.")
+
+    def invalid_value(self):
+        """Display an error message for invalid value."""
+        self.output_text.SetLabel("Invalid value. Enter 'h' for help.")
+    
+    def empty_input(self):
+        """Display an error message for empty input."""
+        self.output_text.SetLabel("No command entered. Enter 'h' for help.")
+
+    def successful_command(self):
+        """Display a success message."""
+        self.output_text.SetLabel("Command executed successfully.")
+    
+    def unsuccessful_command(self):
+        """Display an error message for unsuccessful command."""
+        self.output_text.SetLabel("Command execution failed. Enter 'h' for help.")
