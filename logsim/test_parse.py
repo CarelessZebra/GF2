@@ -381,8 +381,10 @@ def test_parse_network_correct_file():
 @pytest.mark.parametrize("incorrect_content, error_msg, error_count",[
     (" ", "Expected DEVICES block", 1),
     ("DEVICES { A, B = SWITCH(0);} MONITORS{A;}", "Expected CONNECTIONS block", 1),
-    ("DEVICES{A =XOR; B=AND(2);}CONNECTIONS{A->B.I1;}notMONITOR", "Expected MONITORS block", 1),
-    ("DEVICES{A=XOR B=XOR; C=SWITCH(2);}", "expected ';'", 3)
+    ("DEVICES{A =XOR; B=AND(2);}CONNECTIONS{A->B.I1;}notMONITOR", "Expected MONITOR block", 1),
+    ("DEVICES{A=XOR B=XOR; C=SWITCH(2);}", "expected ';'", 3),
+    ("DEVICES{A=XOR; B=XOR}CONNECTIONS{A->B.I1}MONITOR{A;}", "expected ';'", 2), #errors are missing semicolon and B not defined 
+    ("DEVICES{A=SWITCH(0);B=XOR;}CONNECTIONS{A->B.I1}MONITOR{A;}", "expected ';'", 1)
 ])
 def test_parse_network_errors(tmp_file, capsys, incorrect_content, error_msg, error_count):
     path = tmp_file(incorrect_content)

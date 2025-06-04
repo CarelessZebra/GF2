@@ -50,6 +50,7 @@ class Parser:
         self.error_flag = False #This means a syntax block can terminate early if an error is flagged
         self.errors = [] #keep track of error codes, line, and col for printing
         self.device_info: dict[int, Tuple[int,int,int]] = {}
+        self.end_of_block = False
 
     def _advance(self):
         """Fetch the next symbol from the scanner, updating line/column."""
@@ -93,6 +94,8 @@ class Parser:
         if self.symbol.type == self.scanner.EOF:
             #This is for debugging
             #print("Error recovery was not possible, end of file reached")
+            pass
+        elif self.symbol.type == self.scanner.CLOSECURLY and self.scanner.CLOSECURLY in self.stopping_set:
             pass
         else:
             self._advance()
@@ -159,7 +162,7 @@ class Parser:
         if self.symbol.type == self.scanner.KEYWORD and self.symbol.id == self.scanner.MONITOR:
             self._monitors()
         else:
-            self._error("Expected MONITORS block")
+            self._error("Expected MONITOR block")
             return
 
     #  devices = "DEVICES" "{" dev { dev } "}" ;
@@ -411,6 +414,7 @@ class Parser:
             
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
+
         if self.error_flag:
             self.error_flag = False
             return False
