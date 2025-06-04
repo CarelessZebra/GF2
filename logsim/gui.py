@@ -425,7 +425,8 @@ class Gui(wx.Frame):
             return
         else:
             [device, port] = monitor
-            [port] = self.names.lookup([port])
+            if port is not None:
+                [port] = self.names.lookup([port])
             monitor_error = self.monitors.make_monitor(device, port,
                                                        self.cycles_completed)
             if monitor_error == self.monitors.NO_ERROR:
