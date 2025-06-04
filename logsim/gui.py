@@ -48,7 +48,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                                            operations.
     """
 
-    def __init__(self, parent, devices, monitors):
+    def __init__(self, parent, devices, monitors, names):
         """Initialise canvas properties and useful variables."""
         super().__init__(parent, -1,
                          attribList=[wxcanvas.WX_GL_RGBA,
@@ -73,6 +73,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.on_mouse)
 
         # initialise simulation variables
+        self.names = names
         self.devices = devices
         self.monitors = monitors
 
@@ -91,7 +92,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         GL.glTranslated(self.pan_x, self.pan_y, 0.0)
         GL.glScaled(self.zoom, self.zoom, self.zoom)
 
-    def render(self, text):
+    def render(self):
         """Handle all drawing operations."""
         self.SetCurrent(self.context)
         if not self.init:
@@ -102,26 +103,52 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         # Clear everything
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
-        # Draw specified text at position (10, 10)
-        self.render_text(text, 10, 10)
-
         # Draw a all trace signals
         j = 0
         for key in self.monitors.monitors_dictionary:
             trace = self.monitors.monitors_dictionary[key]
             GL.glColor3f(0.0, 0.0, 1.0)
             GL.glBegin(GL.GL_LINE_STRIP)
+
+            # Compute base Y position
+            y_base = 75 + j * 50
+            y_high = 100 + j * 50
+
             for i in range(len(trace)):
-                x = (i*20) + 10
-                x_next = ((i+1)*20) + 10
+                x = (i*20) + 50
+                x_next = ((i+1)*20) + 50
                 y = int(trace[i])
-                if y % 2 == 0:
-                    y = 75 + j * 50
+                if y == 0:
+                    y = y_base
                 else:
-                    y = 100 + j * 50
+                    y = y_high
                 GL.glVertex2f(x, y)
                 GL.glVertex2f(x_next, y)
             GL.glEnd()
+
+            # Draw time axis below trace
+            GL.glColor3f(0.6, 0.6, 0.6)  # Grey color for axis
+            axis_y = y_base + 20 - 25
+            GL.glBegin(GL.GL_LINES)
+            GL.glVertex2f(50, axis_y)
+            GL.glVertex2f(50 + len(trace) * 20, axis_y)
+            GL.glEnd()
+
+            # Draw ticks and labels
+            for i in range(len(trace)):
+                tick_x = (i * 20) + 50
+                GL.glBegin(GL.GL_LINES)
+                GL.glVertex2f(tick_x, axis_y - 3)
+                GL.glVertex2f(tick_x, axis_y + 3)
+                GL.glEnd()
+                self.render_text(str(i), tick_x - 5, axis_y + 5)
+
+            # Draw device name to the left of trace
+            name = self.names.get_name_string(key[0])
+            pin = self.names.get_name_string(key[1]) if key[1] is not None else None
+            label = f"{name}.{pin}" if pin is not None else str(name)
+            self.render_text(label, 5, y_base + 5)
+
             j += 1
         # We have been drawing to the back buffer, flush the graphics pipeline
         # and swap the back buffer to the front
@@ -142,7 +169,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         size = self.GetClientSize()
         text = "".join(["Canvas redrawn on paint event, size is ",
                         str(size.width), ", ", str(size.height)])
-        self.render(text)
+        self.render()
 
     def on_size(self, event):
         """Handle the canvas resize event."""
@@ -197,7 +224,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             text = "".join(["Positive mouse wheel rotation. Zoom is now: ",
                             str(self.zoom)])
         if text:
-            self.render(text)
+            self.render()
         else:
             self.Refresh()  # triggers the paint event
 
@@ -253,7 +280,7 @@ class Gui(wx.Frame):
         self.SetMenuBar(menuBar)
 
         # Canvas for drawing signals
-        self.canvas = MyGLCanvas(self, devices, monitors)
+        self.canvas = MyGLCanvas(self, devices, monitors, names)
 
         # Configure the widgets
         self.text = wx.StaticText(self, wx.ID_ANY, "Cycles")
@@ -310,7 +337,7 @@ class Gui(wx.Frame):
         """Handle the event when the user changes the spin control value."""
         spin_value = self.spin.GetValue()
         text = "".join(["New spin control value: ", str(spin_value)])
-        self.canvas.render(text)
+        self.canvas.render()
 
     def on_run_button(self, event):
         """Handle the event when the user clicks the run button."""
@@ -362,7 +389,7 @@ class Gui(wx.Frame):
     def monitor_command(self, text):
         """Set the specified monitor."""
         monitor = self.read_signal_name(text)
-        print(monitor)
+        #print(monitor)
         if monitor is None:
             self.invalid_device_id()
             return
@@ -372,9 +399,9 @@ class Gui(wx.Frame):
                                                        self.cycles_completed)
             if monitor_error == self.monitors.NO_ERROR:
                 self.successful_command()
+                self.run_command(str(self.cycles))
             else:
                 self.unsuccessful_command()
-        self.run_command(str(self.cycles))
     
 
     def zap_command(self, text):
@@ -416,7 +443,7 @@ class Gui(wx.Frame):
         trace_count = len(monitors_dictionary)
         trace_length = len(next(iter(monitors_dictionary.values()), []))
         print(monitors_dictionary)
-        self.canvas.render('')
+        self.canvas.render()
         self.successful_command()
         return True
 
