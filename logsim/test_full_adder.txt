@@ -20,6 +20,7 @@ CONNECTIONS {
     A -> XOR1.I1;
     B -> XOR1.I2;
 
+
     XOR1 -> XOR2.I1;
     C   -> XOR2.I2;
 
