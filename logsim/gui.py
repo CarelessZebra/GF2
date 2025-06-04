@@ -340,7 +340,16 @@ class Gui(wx.Frame):
         self.SetSizer(main_sizer)
         
         self.run_network(10)  # Run the network for 10 cycles on startup
+        self.invalid_command()  # Set initial output text
         self.output_text.SetLabel("")
+
+        
+        self.Layout()
+        self.Maximize()
+        self.Fit()
+        self.Refresh()
+        self.Centre()
+        self.GetSizer().Fit(self)
 
 
     def on_menu(self, event):
@@ -411,7 +420,6 @@ class Gui(wx.Frame):
     def monitor_command(self, text):
         """Set the specified monitor."""
         monitor = self.read_signal_name(text)
-        print(monitor)
         if monitor is None:
             self.invalid_device_id()
             return
