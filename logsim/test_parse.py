@@ -321,7 +321,7 @@ def test_monitor_correct_monitors(tmp_file, capsys, output_names, output_pins):
     ("MONITOR{A.Q;}", "A does not have an output pin named Q"),
     ("MONITOR{AND1.I1 }", "invalid pin name") #could be more descriptive
 ])
-def test_monitor_correct_monitors(tmp_file, capsys, incorrect_monitor, error_msg):
+def test_monitor_errors(tmp_file, capsys, incorrect_monitor, error_msg):
     """"Test that correct error messages are produced for different errors"""
     path = tmp_file(incorrect_monitor)
     names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
@@ -336,6 +336,69 @@ def test_monitor_correct_monitors(tmp_file, capsys, incorrect_monitor, error_msg
     assert len(monitored_list) == 0
     captout, capterr = capsys.readouterr()
     assert error_msg in captout
+
+def test_parse_network_correct_file():
+    """Test that parse_network parses a correct file correctly"""
+    path = "test_full_adder.txt"
+    names = Names()
+    scanner = Scanner(path, names)
+    #initiate objects
+    devices = Devices(names)
+    network = Network(names, devices)
+    monitors = Monitors(names, devices, network)
+    #create parser
+    parser = Parser(names, devices, network, monitors, scanner)
+    assert parser.parse_network() == True
+    assert parser.error_count == 0
+
+    device_names_kinds = [("A",devices.SWITCH) , ("B", devices.SWITCH),
+                            ("C", devices.SWITCH), ("AND1", devices.AND),
+                            ("AND2", devices.AND), ("AND3", devices.AND), 
+                            ("XOR1", devices.XOR), ("XOR2",devices.XOR), 
+                            ("OR1",devices.OR)]
+    
+    #Check devices have been created correctly
+    for (nm,kind) in device_names_kinds:
+        [nm_id] = names.lookup([nm])
+        assert devices.get_device(nm_id).device_kind == kind
+    
+    #check switches are set correctly
+    for nm_id in names.lookup(["A", "B", "C"]):
+        assert devices.get_device(nm_id).switch_state == 0
+    
+    #check ANDs have right number of inputs
+    for nm_id in names.lookup(["AND1", "AND2", "AND3"]):
+        assert len(devices.get_device(nm_id).inputs) == 2
+    
+    #check OR has right input number
+    [nm_id] = names.lookup(["OR1"])
+    assert len(devices.get_device(nm_id).inputs) == 3
+
+    #check signals are added to monitoring list
+    for output_signal in ["XOR2", "OR1"]:
+        assert output_signal in monitors.get_signal_names()[0]
+
+@pytest.mark.parametrize("incorrect_content, error_msg, error_count",[
+    (" ", "Expected DEVICES block", 1),
+    ("DEVICES { A, B = SWITCH(0);} MONITORS{A;}", "Expected CONNECTIONS block", 1),
+    ("DEVICES{A =XOR; B=AND(2);}CONNECTIONS{A->B.I1;}notMONITOR", "Expected MONITORS block", 1),
+    ("DEVICES{A=XOR B=XOR; C=SWITCH(2);}", "expected ';'", 3)
+])
+def test_parse_network_errors(tmp_file, capsys, incorrect_content, error_msg, error_count):
+    path = tmp_file(incorrect_content)
+    names = Names()
+    scanner = Scanner(path, names)
+    #initiate objects
+    devices = Devices(names)
+    network = Network(names, devices)
+    monitors = Monitors(names, devices, network)
+    #create parser
+    parser = Parser(names, devices, network, monitors, scanner)
+    assert parser.parse_network() == False
+    assert parser.error_count == error_count
+    captout, capterr = capsys.readouterr()
+    assert error_msg in captout
+
 
 
 
