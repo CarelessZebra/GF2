@@ -3,8 +3,8 @@
 DEVICES {
     D_IN = CLOCK(20);
     CLK1  = CLOCK(1);
-    SET1  = SWITCH(1);
-    CLR1  = SWITCH(1);
+    SET1  = SWITCH(0);
+    CLR1  = SWITCH(0);
     D1,D2,D3,D4 = DTYPE;
 }
 
