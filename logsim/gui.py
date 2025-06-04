@@ -411,17 +411,18 @@ class Gui(wx.Frame):
     def monitor_command(self, text):
         """Set the specified monitor."""
         monitor = self.read_signal_name(text)
-        #print(monitor)
+        print(monitor)
         if monitor is None:
             self.invalid_device_id()
             return
         else:
             [device, port] = monitor
+            [port] = self.names.lookup([port])
             monitor_error = self.monitors.make_monitor(device, port,
                                                        self.cycles_completed)
             if monitor_error == self.monitors.NO_ERROR:
                 self.successful_command()
-                self.run_command(str(self.cycles))
+                self.continue_command("0")
             else:
                 self.unsuccessful_command()
     
@@ -433,11 +434,12 @@ class Gui(wx.Frame):
             self.invalid_device_id()
         else:
             [device, port] = monitor
+            [port]=self.names.lookup([port])
             if self.monitors.remove_monitor(device, port):
                 self.successful_command()
             else:
                 self.unsuccessful_command()
-        self.run_command(str(self.cycles))
+        self.continue_command("0")
     
     def run_command(self, N):
         """Run the simulation from scratch."""
