@@ -120,7 +120,61 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         GL.glFlush()
         self.SwapBuffers()
 
+    def render_signal_trace(self, monitors_dictionary):
+        """Render signal traces for the given monitored outputs."""
+        self.SetCurrent(self.context)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        GL.glLoadIdentity()
+
+        # Determine max trace length to scale the viewport
+        max_trace_length = max((len(trace) for trace in monitors_dictionary.values()), default=1)
+        x_step = 20  # pixels per cycle
+        total_width = max_trace_length * x_step
+        total_height = max(len(monitors_dictionary), 1) * 100  # pixels per trace
+
+        # Set up orthographic projection
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+        GL.glOrtho(0, total_width, 0, total_height, -1, 1)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glLoadIdentity()
+
+        GL.glColor3f(1.0, 1.0, 1.0)  # white lines
+
+        y_offset = 100   # pixels between signals
+        height = 50      # height of a high signal in pixels
+
+        for idx, (device_id, output_id) in enumerate(monitors_dictionary.keys()):
+            trace = monitors_dictionary[(device_id, output_id)]
+            y_base = total_height - (idx + 1) * y_offset
+
+            GL.glBegin(GL.GL_LINE_STRIP)
+            for i in range(len(trace)):
+                val = trace[i]
+                if val not in ('-', '_'):
+                    continue
+                x = i * x_step
+                y = y_base + (height if val == '-' else 0)
+                GL.glVertex2f(x, y)
+
+                if i < len(trace) - 1 and trace[i + 1] in ('-', '_'):
+                    next_y = y_base + (height if trace[i + 1] == '-' else 0)
+                    GL.glVertex2f(x + x_step, y)
+                    GL.glVertex2f(x + x_step, next_y)
+            GL.glEnd()
+
+            # Draw label
+            label = f"{device_id}.{output_id}" if output_id is not None else f"{device_id}"
+            self.render_text(label, 10, y_base + height + 10)
+
+        self.SwapBuffers()
+
+
+
+
+
     def on_paint(self, event):
+
         """Handle the paint event."""
         self.SetCurrent(self.context)
         if not self.init:
@@ -204,6 +258,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                 GLUT.glutBitmapCharacter(font, ord(character))
 
 
+
 class Gui(wx.Frame):
     """Configure the main window and all the widgets.
 
@@ -247,7 +302,7 @@ class Gui(wx.Frame):
         self.text = wx.StaticText(self, wx.ID_ANY, "Cycles")
         self.spin = wx.SpinCtrl(self, wx.ID_ANY, "10")
         self.run_button = wx.Button(self, wx.ID_ANY, "Run")
-        self.output_text = wx.StaticText(self, wx.ID_ANY, "output",style=wx.TE_READONLY| wx.TE_MULTILINE)
+        self.output_text = wx.StaticText(self, wx.ID_ANY, "",style=wx.TE_READONLY| wx.TE_MULTILINE)
         self.text_box = wx.TextCtrl(self, wx.ID_ANY, "",
                                     style=wx.TE_PROCESS_ENTER)
         
@@ -304,8 +359,6 @@ class Gui(wx.Frame):
         """Handle the event when the user clicks the run button."""
         spin_value = self.spin.GetValue()
         self.run_command(str(spin_value))
-        text = "Run button pressed."
-        self.canvas.render(text)
 
     def on_text_box(self, event):
         """Handle the event when the user enters text."""
@@ -352,8 +405,10 @@ class Gui(wx.Frame):
     def monitor_command(self, text):
         """Set the specified monitor."""
         monitor = self.read_signal_name(text)
+        print(monitor)
         if monitor is None:
             self.invalid_device_id()
+            return
         else:
             [device, port] = monitor
             monitor_error = self.monitors.make_monitor(device, port,
@@ -396,9 +451,15 @@ class Gui(wx.Frame):
 
         Return True if succesful.
         """
+
+        for _ in range(N):
+            if self.network.execute_network():
+                self.monitors.record_signals()
         monitors_dictionary = self.monitors.monitors_dictionary
-        for monitor in monitors_dictionary:
-            continue
+        trace_count = len(monitors_dictionary)
+        trace_length = len(next(iter(monitors_dictionary.values()), []))
+        print(monitors_dictionary)
+        self.canvas.render_signal_trace(monitors_dictionary)
         self.successful_command()
         return True
 
@@ -408,12 +469,21 @@ class Gui(wx.Frame):
         if not(N.isdigit()):
             self.invalid_cycles()
             return
-        self.cycles += int(N)
-        self.run_command(str(self.cycles))
+        N = int(N)
+        self.cycles += N
+        if self.run_network(N):
+            self.cycles_completed += N
 
     def switch_command(self, device, new_value):
         """Set the specified switch to the specified signal level."""
-        return True
+        switch_id = self.read_name(device)
+        if switch_id is not None:
+            if new_value == "0" or new_value == "1":
+                switch_state = int(new_value)
+                if self.devices.set_switch(switch_id, switch_state):
+                    self.successful_command()
+                    return 
+        self.unsuccessful_command()
 
 
 
