@@ -230,8 +230,6 @@ def generate_parser_with_existing_devices(path):
 def test_no_errors_con(tmp_file, correct_connection):
     """assert correct connection statements produce no errors 
     and that connections are made correctly"""
-    #create some existing devices
-    
     path = tmp_file(correct_connection)
     names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
     parser.input_con_list = []
@@ -245,20 +243,25 @@ def test_no_errors_con(tmp_file, correct_connection):
 @pytest.mark.parametrize("incorrect_content, error_msg",[
     (" -> B;", "device identifier expected"),
     ("A -> ;", "device identifier expected"),
-    ("A.I1 -> B;", "invalid pin name"),
+    ("A.I1 -> B;", "invalid pin name"), #input to output
     ("A -> AND1.I3;", "expected I1..I2 on device AND1"),
     ("IDK -> A;", "device must be defined before use"),
     ("A -> XOR1.I14;", "XOR devices only support I1 and I2 (got I14) on XOR1"),
-    ("A -> D1.I1", "DTYPE input pin must be DATA, SET, CLEAR or CLK (got I) on D1"),
-    ("C.Q -> AND1.I1", "C does not have an output pin named Q"),
-    ("A -> AND1.Iw", "pin number expected")
+    ("A -> D1.I1;", "DTYPE input pin must be DATA, SET, CLEAR or CLK (got I) on D1"),
+    ("C.Q -> AND1.I1;", "C does not have an output pin named Q"),
+    ("A -> AND1.Iw;", "pin number expected"),
+    ("A -> AND1.I1", "expected ';'"),
+    ("AND1.I1 -> AND1.I1;", "invalid pin name"), #input to input, couldbe more descriptive
+    ("D1.Q -> D1.Q", "invalid pin name"), #output to output
+    ("A = B", "expected '->'")
 ])
 def test_con_correct_err_msg(tmp_file, incorrect_content, error_msg, capsys):
+    """Test _con prints correct error message for incorrect connection"""
     path = tmp_file(incorrect_content)
     names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
     parser.input_con_list = []
-    parser._con()
     parser.stopping_set = [";"]
+    parser._con()
     parser._print_all_errors()
     assert parser.error_count == 1
     #relevant error message printed
@@ -266,6 +269,81 @@ def test_con_correct_err_msg(tmp_file, incorrect_content, error_msg, capsys):
     assert error_msg in captout
     #error recovery to end of the line
     assert parser.symbol.type == scanner.EOF
+
+def test_con_input_already_connected(tmp_file, capsys):
+    """Test _con prints correct error message when you 
+    try to connect 2 outputs to the same input"""
+    path = tmp_file("A -> AND1.I1;")
+    names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
+    [dev_name] = names.lookup(["AND1"])
+    parser.input_con_list = [(dev_name, "I1")]
+    parser.stopping_set = [";"]
+    parser._con()
+    parser._print_all_errors()
+    assert parser.error_count == 1
+    assert parser.symbol.type == scanner.EOF
+    captout, capterrr = capsys.readouterr()
+    assert "input signal already connected, use an OR gate to combine signals" in captout
+
+#_monitor
+@pytest.mark.parametrize("output_names, output_pins", [
+    (["A", "B", "D1", "AND1", "D1"], ["", "", ".Q", "", ".QBAR"]),
+    (["A", "B", "C", "AND1", "XOR1"], ["","","","",""]),
+    (["D1", "D1"], [".Q", ".QBAR"])
+])
+def test_monitor_correct_monitors(tmp_file, capsys, output_names, output_pins):
+    """"Test that correct output signals are set to be monitored with no errors"""
+    output_signals = [output_names[i]+output_pins[i] for i in range(len(output_names))]
+    correct_monitor = "MONITOR{"+",".join(output_signals)+";}"
+    print(correct_monitor)
+    path = tmp_file(correct_monitor)
+    names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
+    parser.monitors_list = []
+    parser._monitors()
+    #No errors and every output is added to monitors_list
+    assert parser.error_count == 0
+    assert len(parser.monitors_list) == len(output_signals)
+    output_ids = names.lookup(output_names)
+    #check make_monitors has been called and signals added to monitored list
+    monitored_list = monitors.get_signal_names()[0]
+    for output_signal in output_signals:
+        assert output_signal in monitored_list
+
+
+@pytest.mark.parametrize("incorrect_monitor, error_msg", [
+    (".", "expected MONITOR"),
+    ("MONITOR.", "expected '{'"),
+    ("MONITOR{.}", "device identifier expected"),
+    ("MONITOR{ HELLO; }", "device must be defined before use"),
+    ("MONITOR{A.BIG ;}", "invalid pin name"),
+    ("MONITOR{A, WHAT;}", "device must be defined before use"),
+    ("MONITOR{A, A;}", "signal already monitored"),
+    ("MONITOR{A.Q;}", "A does not have an output pin named Q"),
+    ("MONITOR{AND1.I1 }", "invalid pin name") #could be more descriptive
+])
+def test_monitor_correct_monitors(tmp_file, capsys, incorrect_monitor, error_msg):
+    """"Test that correct error messages are produced for different errors"""
+    path = tmp_file(incorrect_monitor)
+    names, devices, network, monitors,scanner, parser = generate_parser_with_existing_devices(path)
+    parser.monitors_list = []
+    parser._monitors()
+    parser._print_all_errors()
+    assert parser.error_count == 1
+    #Wasn't able to monitor signals so they aren't added to monitors_list
+    assert len(parser.monitors_list) == 0
+    #check make_monitors wasn't called
+    monitored_list = monitors.get_signal_names()[0]
+    assert len(monitored_list) == 0
+    captout, capterr = capsys.readouterr()
+    assert error_msg in captout
+
+
+
+
+
+
+
+
 
 
 

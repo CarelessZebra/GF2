@@ -137,7 +137,9 @@ class Parser:
         else:
             self._spec()
             self._print_all_errors()
-            return True
+            if self.error_count == 0:
+                return True
+            return False
 
     def _is_kw(self, kw_id: int) -> bool:
         return self.symbol.type == self.scanner.KEYWORD and self.symbol.id == kw_id
@@ -429,7 +431,6 @@ class Parser:
         input_signal = self._input_signal()
         if not input_signal:
             return False
-        
         if input_signal in self.input_con_list:
             self._error("input signal already connected, use an OR gate to combine signals")
             self.error_flag = False
@@ -609,30 +610,28 @@ class Parser:
         
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
         output_signal = self._output_signal()
-
+    
+        if not output_signal:
+            return False
+        
         if output_signal in self.monitors_list:
-            self._error("signal already moinitored")
+            self._error("signal already monitored")
             self.error_flag = False
             return False
         
-        self.monitors_list.append(output_signal)  # add output signal to monitors list
+        local_monitors = [output_signal]
 
-        if self.error_flag:
-            self.error_flag = False
-            return False
-        
         while self._accept(self.scanner.COMMA):
             if self.symbol.type != self.scanner.CLOSECURLY:
                 output_signal = self._output_signal()
-            if self.error_flag:
-                self.error_flag = False
+            if not output_signal:
                 return False
-            if output_signal in self.monitors_list:
-                self._error("signal already moinitored")
+            if output_signal in local_monitors:
+                self._error("signal already monitored")
                 self.error_flag = False
                 return False            
             
-            self.monitors_list.append(output_signal)  # add output signal to monitor list
+            local_monitors.append(output_signal)  # add output signal to monitor list
 
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.SEMICOLON)
@@ -646,7 +645,8 @@ class Parser:
         self.stopping_set = []
 
         #call make monitors
-        for output_signal in self.monitors_list:
+        for output_signal in local_monitors:
+            self.monitors_list.append(output_signal)
             # Adi I don't know what your extra variable is
             out_dev_id, (out_pin, some_variable) = output_signal
             out_pin = self.names.query(out_pin)
