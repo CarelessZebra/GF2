@@ -126,7 +126,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             GL.glBegin(GL.GL_LINE_STRIP)
 
             y_base = padding_y + (j + 1) * signal_height - 10
-            y_high = y_base - 20
+            y_high = y_base + 20
 
             for i, sig in enumerate(trace):
                 x = padding_x + i * x_step
@@ -142,7 +142,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
 
             # Draw time axis below trace
             GL.glColor3f(0.6, 0.6, 0.6)
-            axis_y = y_base - 25
+            axis_y = y_base - 5
             GL.glBegin(GL.GL_LINES)
             GL.glVertex2f(padding_x, axis_y)
             GL.glVertex2f(width-padding_x, axis_y)
