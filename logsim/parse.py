@@ -100,6 +100,8 @@ class Parser:
             self._advance()
 
     def _print_all_errors(self):
+        if self.scanner.comment_opened:
+            self.errors.insert(0,("Unclosed comment", self.scanner.comment_opened_line, self.scanner.comment_opened_column))
         for error_msg, line, column in self.errors:
             self.scanner.print_error_line(line, column)
             print(f"{error_msg} on line {line}")

@@ -54,7 +54,9 @@ class Scanner:
         self.file = open(path, 'r', encoding='utf-8')
         self.current_char = self.file.read(1)
         self.names = names
-
+        self.comment_opened = False  # True if a multi-line comment is open
+        self.comment_opened_line = None
+        self.comment_opened_column = None
         # NOTE If you need to add a symbol type, increment the range
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
                                  self.COMMA,  self.NUMBER, self.NAME, self.EOF,
@@ -103,6 +105,9 @@ class Scanner:
         elif self.current_char == '/':
             next_char = self.file.read(1)
             if next_char == '*':
+                self.comment_opened = True
+                self.comment_opened_line = line
+                self.comment_opened_column = column
                 prev = None
                 # Consume until we see '*' followed by '/'
                 while True:
@@ -117,6 +122,7 @@ class Scanner:
                     # If previous was '*' and current is '/', comment is closed
                     if prev == '*' and self.current_char == '/':
                         # set current_char to the next character after '/'
+                        self.comment_opened = False
                         self.current_char = self.file.read(1)
                         break
                     prev = self.current_char
@@ -222,9 +228,11 @@ class Scanner:
         """Print the line with a caret (^) underneath the character at error_pos."""
         self.file.seek(0)
         num_lines = len(self.file.readlines())
-        print(num_lines)
         if line>num_lines:
             line = num_lines
+        if num_lines == 0:
+            print("Error: File is empty.")
+            return
         self.file.seek(0)
         line_text = self.get_line(line)
         print(line_text)
