@@ -1,7 +1,8 @@
 # Full Adder Circuit #
-
+# second comment
+/*
 DEVICES {
-    A, B, C, A            = SWITCH(0);
+    A, B, C          = SWITCH(0);
     AND1, AND2, AND3     = AND(2);
     XOR1, XOR2           = XOR;
     OR1                  = OR(3);

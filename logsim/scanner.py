@@ -151,7 +151,8 @@ class Scanner:
         symbol = Symbol()
         # skip whitespace and comments before reading the next character
         line, column = self.skip_whitespace(line, column)
-        line, column = self.skip_comments(line, column)
+        while self.current_char == '#' or self.current_char =='/':
+            line, column = self.skip_comments(line, column)
         line, column = self.skip_whitespace(line, column)
         symbol.line = line
         symbol.column = column
@@ -219,6 +220,12 @@ class Scanner:
 
     def print_error_line(self, line, column):
         """Print the line with a caret (^) underneath the character at error_pos."""
+        self.file.seek(0)
+        num_lines = len(self.file.readlines())
+        print(num_lines)
+        if line>num_lines:
+            line = num_lines
+        self.file.seek(0)
         line_text = self.get_line(line)
         print(line_text)
         if 0 <= column and column < len(line_text):
