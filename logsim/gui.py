@@ -103,19 +103,18 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         # Clear everything
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
-        size = self.GetClientSize()
-        width = size.width
-        height = size.height
-        padding_x = 50
-        padding_y = 30
 
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
 
+        size = self.GetClientSize()
+        width = size.width
+        height = size.height
+        padding_x = 50
+        padding_y = 30
         num_signals = len(self.monitors.monitors_dictionary)
         trace_length = max((len(v) for v in self.monitors.monitors_dictionary.values()), default=1)
-
         signal_height = (height - 2*padding_y) / (num_signals + 1)
         x_step = (width - 2*padding_x) / max(trace_length, 1)
 
@@ -127,12 +126,12 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             GL.glBegin(GL.GL_LINE_STRIP)
 
             y_base = padding_y + (j + 1) * signal_height - 10
-            y_high = y_base - 20
+            y_high = y_base + 20
 
-            for i in range(len(trace)):
+            for i, sig in enumerate(trace):
                 x = padding_x + i * x_step
                 x_next = padding_x+ (i + 1) * x_step
-                y = int(trace[i])
+                y = int(sig)
                 if y == 0:
                     y = y_base
                 else:
@@ -142,8 +141,8 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             GL.glEnd()
 
             # Draw time axis below trace
-            GL.glColor3f(0.6, 0.6, 0.6)  # Grey color for axis
-            axis_y = y_base - 25
+            GL.glColor3f(0.6, 0.6, 0.6)
+            axis_y = y_base - 5
             GL.glBegin(GL.GL_LINES)
             GL.glVertex2f(padding_x, axis_y)
             GL.glVertex2f(width-padding_x, axis_y)
@@ -180,10 +179,6 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             # Configure the viewport, modelview and projection matrices
             self.init_gl()
             self.init = True
-
-        size = self.GetClientSize()
-        text = "".join(["Canvas redrawn on paint event, size is ",
-                        str(size.width), ", ", str(size.height)])
         self.render()
 
     def on_size(self, event):
@@ -282,6 +277,46 @@ class Gui(wx.Frame):
                                 button.
 
     on_text_box(self, event): Event handler for when the user enters text.
+
+    help_command(self): Display the help text in a message box.
+
+    monitor_command(self, text): Set the specified monitor.
+
+    zap_command(self, text): Remove the specified monitor.
+
+    run_command(self, N): Run the simulation from scratch.
+
+    run_network(self, N): Run the network for N cycles and draw the signal
+    traces.
+
+    continue_command(self, N): Continue the simulation for N more cycles.
+
+    switch_command(self, device, new_value): Set the specified switch to the
+    specified signal level.
+
+    read_name(self, text): Return the name ID of the current string if valid.
+
+    read_signal_name(self, text): Return the device and port IDs of the current
+    signal name.
+
+    read_value(self, text): Return the value of the current signal.
+
+    invalid_command(self): Display an error message for invalid input.
+
+    invalid_cycles(self): Display an error message for invalid cycle input.
+
+    invalid_device_id(self): Display an error message for invalid device ID.
+
+    invalid_port_id(self): Display an error message for invalid port ID.
+
+    invalid_value(self): Display an error message for invalid value.
+
+    empty_input(self): Display an error message for empty input.
+
+    successful_command(self): Display a success message.
+
+    unsuccessful_command(self): Display an error message for unsuccessful
+    command.
     """
 
     def __init__(self, title, path, names, devices, network, monitors):
@@ -433,8 +468,7 @@ class Gui(wx.Frame):
                 self.successful_command()
                 self.continue_command("0")
             else:
-                self.unsuccessful_command()
-    
+                self.unsuccessful_command()  
 
     def zap_command(self, text):
         """Remove the specified monitor."""
@@ -468,13 +502,11 @@ class Gui(wx.Frame):
 
         Return True if succesful.
         """
-
         for _ in range(N):
             if self.network.execute_network():
                 self.monitors.record_signals()
         self.canvas.render()
         self.successful_command()
-
 
     def continue_command(self, N):
         """Continue the simulation for N more cycles."""
@@ -497,13 +529,6 @@ class Gui(wx.Frame):
                     return 
         self.unsuccessful_command()
 
-
-
-
-
-
-
- 
 
     def read_name(self, text):
         """Return the name ID of the current string if valid.
@@ -558,36 +583,29 @@ class Gui(wx.Frame):
             return None
 
 
-
-
-
-
-
-
-
     def invalid_command(self):
         """Display an error message for invalid input."""
-        self.output_text.SetLabel("Invalid command. Enter 'h' for help.")
+        self.output_text.SetLabel("Invalid command.\n Enter 'h' for help.")
 
     def invalid_cycles(self):
         """Display an error message for invalid cycle input."""
-        self.output_text.SetLabel("Number of cycles must be an integer. Enter 'h' for help.")
+        self.output_text.SetLabel("Invalid Number of cycles.\n Enter 'h' for help.")
 
     def invalid_device_id(self):
         """Display an error message for invalid device ID."""
-        self.output_text.SetLabel("Invalid device ID. Enter 'h' for help.")
+        self.output_text.SetLabel("Invalid device ID.\n Enter 'h' for help.")
     
     def invalid_port_id(self):
         """Display an error message for invalid port ID."""
-        self.output_text.SetLabel("Invalid port ID. Enter 'h' for help.")
+        self.output_text.SetLabel("Invalid port ID.\n Enter 'h' for help.")
 
     def invalid_value(self):
         """Display an error message for invalid value."""
-        self.output_text.SetLabel("Invalid value. Enter 'h' for help.")
+        self.output_text.SetLabel("Invalid value.\n Enter 'h' for help.")
     
     def empty_input(self):
         """Display an error message for empty input."""
-        self.output_text.SetLabel("No command entered. Enter 'h' for help.")
+        self.output_text.SetLabel("No command entered.\n Enter 'h' for help.")
 
     def successful_command(self):
         """Display a success message."""
@@ -595,4 +613,4 @@ class Gui(wx.Frame):
     
     def unsuccessful_command(self):
         """Display an error message for unsuccessful command."""
-        self.output_text.SetLabel("Command execution failed. Enter 'h' for help.")
+        self.output_text.SetLabel("Command execution failed.\n Enter 'h' for help.")
