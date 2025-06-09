@@ -16,7 +16,7 @@ CONNECTIONS {
     D1.Q -> D2.DATA;
     SET  -> D2.SET;
     CLR  -> D2.CLEAR;
-    CLK  -> D2.CLK;
+    SIG1  -> D2.CLK;
     
     D2.Q -> D3.DATA;
     SET  -> D3.SET;
