@@ -419,21 +419,21 @@ class Parser:
 
     def _siggen(self):
         """Check signal generator syntax."""
-        print("enter in siggen")
+        #print("enter in siggen")
         self._expect(self.scanner.KEYWORD, self.scanner.SIGGEN)
-        print("siggen keyword accepted")
+        #print("siggen keyword accepted")
         if self.error_flag:
             self.error_flag = False
             return False
         
         self._expect(self.scanner.OPENBRAC)
-        print("siggen openbrac accepted")
+        #print("siggen openbrac accepted")
         if self.error_flag:
             self.error_flag = False
             return False
         
         if self.symbol.id not in [0, 1]:
-            print("first siggen symbol id not in [0, 1]")
+            #print("first siggen symbol id not in [0, 1]")
             self._error("Expected binary input in SIGGEN LIST")
 
         if self.error_flag:   
@@ -442,11 +442,11 @@ class Parser:
 
 
         pattern = [self.symbol.id]  # start with first binary value
-        print(f"pattern curerntly {pattern}")
+        #print(f"pattern curerntly {pattern}")
         self._advance()  # move to next symbol
         
         while self.symbol.type == self.scanner.COMMA:
-            print("siggen comma accepted")
+            #print("siggen comma accepted")
             self._advance()  # move to next symbol after comma
             if self.symbol.id not in [0, 1]:
                 self._error("Expected binary input in SIGGEN LIST")
