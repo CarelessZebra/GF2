@@ -333,6 +333,28 @@ class Network:
 
         else:
             return False
+        
+   
+    
+
+    def execute_siggen(self, device_id):
+        """Advance a SIGGEN device one step through its user waveform."""
+        device = self.devices.get_device(device_id)
+        # step the pattern pointer
+        device.clock_counter = (device.clock_counter + 1) % len(device.siggen_list)
+        # fetch the desired next bit
+        target = device.siggen_list[device.clock_counter]
+        # get current output signal
+        output_signal = device.outputs[None]
+        # update (so edges get labeled RISING/FALLING properly)
+        new_signal = self.update_signal(output_signal, target)
+        if new_signal is None:
+            return False
+        device.outputs[None] = new_signal
+        return True
+
+
+
 
     def update_clocks(self):
         """If it is time to do so, set clock signals to RISING or FALLING."""
@@ -362,6 +384,7 @@ class Network:
         nand_devices = self.devices.find_devices(self.devices.NAND)
         nor_devices = self.devices.find_devices(self.devices.NOR)
         xor_devices = self.devices.find_devices(self.devices.XOR)
+        siggen_devices = self.devices.find_devices(self.devices.SIGGEN)
 
         # This sets clock signals to RISING or FALLING, where necessary
         self.update_clocks()
@@ -404,6 +427,10 @@ class Network:
                     return False
             for device_id in xor_devices:  # execute XOR devices
                 if not self.execute_gate(device_id, None, None):
+                    return False
+                
+            for device_id in siggen_devices:
+                if not self.execute_siggen(device_id):
                     return False
             if self.steady_state:
                 break

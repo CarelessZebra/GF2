@@ -120,7 +120,7 @@ class Devices:
                              self.FALLING, self.BLANK] = range(5)
         self.gate_types = [self.AND, self.OR, self.NAND, self.NOR,
                            self.XOR] = self.names.lookup(gate_strings)
-        self.device_types = [self.CLOCK, self.SWITCH,
+        self.device_types = [self.CLOCK, self.SWITCH, self.SIGGEN,
                              self.D_TYPE] = self.names.lookup(device_strings)
         self.dtype_input_ids = [self.CLK_ID, self.SET_ID, self.CLEAR_ID,
                                 self.DATA_ID] = self.names.lookup(dtype_inputs)
@@ -245,10 +245,7 @@ class Devices:
         self.cold_startup()  # clock initialised to a random point in its cycle
 
     def make_siggen(self, device_id, siggen_list):
-        """Make a clock device with the specified half period.
-
-        clock_half_period is an integer > 0. It is the number of simulation
-        cycles before the clock switches state.
+        """Make a siggen device with the specified binary waveform list.
         """
         self.add_device(device_id, self.SIGGEN)
         device = self.get_device(device_id)
@@ -294,11 +291,10 @@ class Devices:
                 
             elif device.device_kind == self.SIGGEN:
                 # Initialise it to a random point in its cycle.
-                device.clock_counter = \
-                    random.randrange(device.siggen_list[0][1])
+                device.clock_counter = 0
                 # Set the first signal to the first value in the list
                 self.add_output(device.device_id, output_id=None,
-                                signal=device.siggen_list[0][0])
+                                signal=device.siggen_list[0])
 
     def make_device(self, device_id, device_kind, device_property=None):
         """Create the specified device.
@@ -328,6 +324,17 @@ class Devices:
             else:
                 self.make_clock(device_id, device_property)
                 error_type = self.NO_ERROR
+
+        elif device_kind == self.SIGGEN:
+            if device_property is None:
+                error_type = self.NO_QUALIFIER
+            elif not isinstance(device_property, list) or not device_property or len(device_property) == 0:
+                error_type = self.INVALID_QUALIFIER
+            elif any(val not in [self.LOW, self.HIGH] for val in device_property):
+                error_type = self.INVALID_QUALIFIER
+            else:
+                self.make_siggen(device_id, device_property)
+                error_type = self.NO_ERROR            
 
         elif device_kind in self.gate_types:
             # Device property is the number of inputs
