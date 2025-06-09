@@ -42,6 +42,9 @@ class Device:
         self.switch_state = None
         self.dtype_memory = None
 
+        # added below for SIGGEN
+        self.siggen_list = None
+
 
 class Devices:
 
@@ -105,7 +108,7 @@ class Devices:
         self.devices_list = []
 
         gate_strings = ["AND", "OR", "NAND", "NOR", "XOR"]
-        device_strings = ["CLOCK", "SWITCH", "DTYPE"]
+        device_strings = ["CLOCK","SIGGEN", "SWITCH", "DTYPE"]
         dtype_inputs = ["CLK", "SET", "CLEAR", "DATA"]
         dtype_outputs = ["Q", "QBAR"]
 
@@ -241,6 +244,17 @@ class Devices:
         device.clock_half_period = clock_half_period
         self.cold_startup()  # clock initialised to a random point in its cycle
 
+    def make_siggen(self, device_id, siggen_list):
+        """Make a clock device with the specified half period.
+
+        clock_half_period is an integer > 0. It is the number of simulation
+        cycles before the clock switches state.
+        """
+        self.add_device(device_id, self.SIGGEN)
+        device = self.get_device(device_id)
+        device.siggen_list = siggen_list
+        self.cold_startup()  # clock initialised to a random point in its cycle
+
     def make_gate(self, device_id, device_kind, no_of_inputs):
         """Make logic gates with the specified number of inputs."""
         self.add_device(device_id, device_kind)
@@ -277,6 +291,14 @@ class Devices:
                 # Initialise it to a random point in its cycle.
                 device.clock_counter = \
                     random.randrange(device.clock_half_period)
+                
+            elif device.device_kind == self.SIGGEN:
+                # Initialise it to a random point in its cycle.
+                device.clock_counter = \
+                    random.randrange(device.siggen_list[0][1])
+                # Set the first signal to the first value in the list
+                self.add_output(device.device_id, output_id=None,
+                                signal=device.siggen_list[0][0])
 
     def make_device(self, device_id, device_kind, device_property=None):
         """Create the specified device.

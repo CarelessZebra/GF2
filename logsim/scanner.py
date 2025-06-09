@@ -67,12 +67,12 @@ class Scanner:
         # NOTE If you are adding a keyword, append it to this list
         self.keywords_list = ["DEVICES", "CONNECTIONS", "MONITOR",
                               "AND", "OR", "NAND", "NOR", "XOR", "DTYPE",
-                              "CLOCK", "SWITCH"]
+                              "CLOCK","SIGGEN", "SWITCH"]
 
         # Add the new keyword here aswell
         [self.DEVICES, self.CONNECTIONS, self.MONITOR,
          self.AND, self.OR, self.NAND, self.NOR, self.XOR, self.DTYPE,
-         self.CLOCK, self.SWITCH] = self.names.lookup(self.keywords_list)
+         self.CLOCK,self.SIGGEN, self.SWITCH] = self.names.lookup(self.keywords_list)
 
     def skip_whitespace(self, line, column):
         """Skip whitespace characters in the file."""
