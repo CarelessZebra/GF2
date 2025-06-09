@@ -77,7 +77,7 @@ class Parser:
     def _expect(self, sym_type: int, sym_id: Optional[int] = None):
         """Like :meth:`_accept` but emits an error when the symbol is wrong."""
         if not self._accept(sym_type, sym_id):
-            self._error(f"expected {self._tok_desc(sym_type, sym_id)}")
+            self._error(f"expected {self._tok_desc(sym_type, sym_id)}   on line {self.line}")
 
         # -----------------------------------------------------------------------
     def _error(self, error_msg):
@@ -102,7 +102,9 @@ class Parser:
     def _print_all_errors(self):
         for error_msg, line, column in self.errors:
             self.scanner.print_error_line(line, column)
-            print(error_msg)
+            print(f"{error_msg} on line {line}")
+
+        print(f"\nTotal errors: {self.error_count}")
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
