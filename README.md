@@ -1,5 +1,5 @@
 # GF2
 
 Maintenance internationalisation
-LANG=es \n
+LANG=es
 I think this only works on Linux, on windows it seems like wx.DEFAULT_LANGUAGE gets the system language directly without looking at the environment variables. 
