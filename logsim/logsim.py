@@ -23,6 +23,7 @@ from scanner import Scanner
 from parse import Parser
 from userint import UserInterface
 from gui import Gui
+import builtins
 
 
 def main(arg_list):
@@ -76,6 +77,14 @@ def main(arg_list):
         if parser.parse_network():
             # Initialise an instance of the gui.Gui() class
             app = wx.App()
+
+            # Internationalisatiom
+            builtins._ = wx.GetTranslation
+            locale = wx.Locale()
+            locale.Init(wx.LANGUAGE_DEFAULT)
+            locale.AddCatalogLookupPathPrefix('./locale')
+            locale.AddCatalog('gui')
+            
             gui = Gui("Logic Simulator", path, names, devices, network,
                       monitors)
             gui.Show(True)
