@@ -64,7 +64,9 @@ class Scanner:
         self.file = open(path, 'r', encoding='utf-8')
         self.current_char = self.file.read(1)
         self.names = names
-
+        self.comment_opened = False  # True if a multi-line comment is open
+        self.comment_opened_line = None
+        self.comment_opened_column = None
         # NOTE If you need to add a symbol type, increment the range
         self.symbol_type_list = [self.KEYWORD, self.SEMICOLON, self.EQUALS,
                                  self.COMMA,  self.NUMBER, self.NAME, self.EOF,
@@ -113,6 +115,9 @@ class Scanner:
         elif self.current_char == '/':
             next_char = self.file.read(1)
             if next_char == '*':
+                self.comment_opened = True
+                self.comment_opened_line = line
+                self.comment_opened_column = column
                 prev = None
                 # Consume until we see '*' followed by '/'
                 while True:
@@ -127,6 +132,7 @@ class Scanner:
                     # If previous was '*' and current is '/', comment is closed
                     if prev == '*' and self.current_char == '/':
                         # set current_char to the next character after '/'
+                        self.comment_opened = False
                         self.current_char = self.file.read(1)
                         break
                     prev = self.current_char
@@ -161,7 +167,8 @@ class Scanner:
         symbol = Symbol()
         # skip whitespace and comments before reading the next character
         line, column = self.skip_whitespace(line, column)
-        line, column = self.skip_comments(line, column)
+        while self.current_char == '#' or self.current_char =='/':
+            line, column = self.skip_comments(line, column)
         line, column = self.skip_whitespace(line, column)
         symbol.line = line
         symbol.column = column
@@ -229,6 +236,14 @@ class Scanner:
 
     def print_error_line(self, line, column):
         """Print the line with a caret (^) underneath the character at error_pos."""
+        self.file.seek(0)
+        num_lines = len(self.file.readlines())
+        if line>num_lines:
+            line = num_lines
+        if num_lines == 0:
+            print("Error: File is empty.")
+            return
+        self.file.seek(0)
         line_text = self.get_line(line)
         print(line_text)
         if 0 <= column and column < len(line_text):

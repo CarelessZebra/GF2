@@ -77,7 +77,7 @@ class Parser:
     def _expect(self, sym_type: int, sym_id: Optional[int] = None):
         """Like :meth:`_accept` but emits an error when the symbol is wrong."""
         if not self._accept(sym_type, sym_id):
-            self._error(f"expected {self._tok_desc(sym_type, sym_id)}")
+            self._error(f"expected {self._tok_desc(sym_type, sym_id)}   on line {self.line}")
 
         # -----------------------------------------------------------------------
     def _error(self, error_msg):
@@ -100,9 +100,13 @@ class Parser:
             self._advance()
 
     def _print_all_errors(self):
+        if self.scanner.comment_opened:
+            self.errors.insert(0,("Unclosed comment", self.scanner.comment_opened_line, self.scanner.comment_opened_column))
         for error_msg, line, column in self.errors:
             self.scanner.print_error_line(line, column)
-            print(error_msg)
+            print(f"{error_msg} on line {line}")
+
+        print(f"\nTotal errors: {self.error_count}")
 
     def _tok_desc(self, t: int, i: Optional[int]) -> str:
         """Return a short, human‑readable description of the token *t/i*."""
@@ -177,15 +181,23 @@ class Parser:
             self.error_flag = False
             return False
         self.stopping_set = [self.scanner.CLOSECURLY, self.scanner.SEMICOLON]
+        
+        #print(self.error_count)
         self._dev()
+        #print(self.error_count)
+        #print(self.symbol.type==self.scanner.NAME)
 
         while self.symbol.type != self.scanner.CLOSECURLY:
             if self.symbol.type == self.scanner.NAME:
+                #print("hello", self.symbol.line, self.symbol.column)
+                #print(self.error_count)
+                #print("do you accept comma here")
+                #print(self.names.get_name_string(self.symbol.id))
                 self._dev()
+                #print(self.error_count)
             else:
                 self._error("device identifier expected")
                 return False
-
         self.stopping_set = [self.scanner.CLOSECURLY]
         self._expect(self.scanner.CLOSECURLY)
         if self.error_flag:
@@ -198,21 +210,24 @@ class Parser:
         """Check dev syntax."""
         # if an error flag is raised then need to not run the rest
         name_id = self.symbol.id  # remember the device name
-
+        #print(self.names.get_name_string(name_id))
         if name_id in self.dev_list:
             self._error("device identifier already used")
             # print([self.names.get_name_string(i) for i in self.dev_list])
             self.error_flag = False
             return False
         # first identifier added to names list
+        #print("hello", self.names.get_name_string(self.symbol.id))
         names_list: List[int] = [self._device_name()]
 
         if self.error_flag:
+            print("error")
             self.error_flag = False
             return False
-
+        #print("dev comma:")
+        #print(self.symbol.type==self.scanner.COMMA, self.symbol.line)
         while self._accept(self.scanner.COMMA):
-
+            #print("accepts comma")
             name_id = self.symbol.id  # remember the device name
             if name_id in names_list:
                 self._error("device identifier already used")
@@ -237,6 +252,11 @@ class Parser:
         except Exception:
             dev_kind, param = None, None
         if (dev_kind, param) == (None, None):
+            #print("returns here")
+            #print(self.symbol.type==self.scanner.NAME, self.symbol.line)
+            # NOTE NOTE NOTE DON'T REMOVE THIS FLAG THE ENTIRE 
+            # CODEBASE DEPENDS ON IT NOTE NOTE NOTE
+            self.error_flag = False
             return False
 
         self._expect(self.scanner.SEMICOLON)
@@ -725,7 +745,10 @@ class Parser:
     #  device_name = NAME token
     def _device_name(self):
         """Check device_name = NAME token."""
+        #print("name", self.symbol.type==self.scanner.NAME)
+        #print(self.names.get_name_string(self.symbol.id))
         if self.symbol.type != self.scanner.NAME:
+            print("this is not where the second error is flagged")
             self._error("device identifier expected")
             return None
         name_id = self.symbol.id
