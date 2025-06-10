@@ -359,25 +359,25 @@ class Gui(wx.Frame):
         self.text_box.Bind(wx.EVT_TEXT_ENTER, self.on_text_box)
 
         # Configure sizers for layout
-        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        side_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.side_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        main_sizer.Add(self.canvas, 5, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(side_sizer, 1, wx.ALL, 5)
+        self.main_sizer.Add(self.canvas, 5, wx.EXPAND | wx.ALL, 5)
+        self.main_sizer.Add(self.side_sizer, 1, wx.ALL, 5)
 
-        side_sizer.Add(self.text, 1, wx.TOP, 10)
-        side_sizer.Add(self.spin, 1, wx.ALL, 5)
-        side_sizer.Add(self.run_button, 1, wx.ALL, 5)
-        side_sizer.Add(self.text_box, 1, wx.ALL, 5)
-        side_sizer.Add(self.output_text, 1, wx.EXPAND | wx.ALL, 5)
+        self.side_sizer.Add(self.text, 1, wx.TOP, 10)
+        self.side_sizer.Add(self.spin, 1, wx.ALL, 5)
+        self.side_sizer.Add(self.run_button, 1, wx.ALL, 5)
+        self.side_sizer.Add(self.text_box, 1, wx.ALL, 5)
+        self.side_sizer.Add(self.output_text, 1, wx.EXPAND | wx.ALL, 5)
 
         self.SetSizeHints(600, 600)
-        self.SetSizer(main_sizer)
+        self.SetSizer(self.main_sizer)
         
         self.run_network(10)  # Run the network for 10 cycles on startup
         self.invalid_command()  # Set initial output text
         self.output_text.SetLabel("")
-
+        self.populate_side_sizer()
         
         self.Layout()
         self.Maximize()
@@ -386,6 +386,85 @@ class Gui(wx.Frame):
         self.Centre()
         self.GetSizer().Fit(self)
 
+        #add buttons to the side sizer for every monitored and non-monitored device allowing the user to monitor or unmonitor the device
+        # the user can also switch the device state if it is a switch
+# Clear the side_sizer first (optional, for refreshes)
+
+        
+
+        # Bind the close event to the on_close method
+        #self.Bind(wx.EVT_CLOSE, self.on_close)
+
+    def populate_side_sizer(self):
+        # Clear the sizer
+        for i,child in enumerate(self.side_sizer.GetChildren()):
+            if i>5 and child.GetWindow() is not None:
+                child.GetWindow().Destroy()
+        
+
+        monitored_list, non_monitored_list = self.monitors.get_signal_names()
+
+        # --- Monitored Section Title ---
+        monitored_title = wx.StaticText(self, label="Monitored Devices")
+        monitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        self.side_sizer.Add(monitored_title, 0, wx.ALL, 5)
+
+        # --- Monitored Devices Section ---s
+        for device_name in monitored_list:
+            device_id = self.names.query(device_name)
+            device = self.devices.get_device(device_id)
+
+            if device_id is not None:
+                hbox = wx.BoxSizer(wx.HORIZONTAL)
+
+                # Device name label
+                label = wx.StaticText(self, label=device_name)
+                hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+                # Unmonitor button
+                unmonitor_btn = wx.Button(self, wx.ID_ANY, label="Unmonitor")
+                unmonitor_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.zap_command(d))
+                hbox.Add(unmonitor_btn, 0, wx.RIGHT, 5)
+
+                # Optional: Flip Switch button
+                if device.device_kind == self.devices.SWITCH:
+                    flip_btn = wx.Button(self, wx.ID_ANY, label="Flip Switch")
+                    flip_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.toggle_switch(d))
+                    hbox.Add(flip_btn, 0, wx.RIGHT, 5)
+
+                self.side_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
+
+
+        # --- Unmonitored Section Title ---
+        unmonitored_title = wx.StaticText(self, label="Unmonitored Devices")
+        unmonitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        self.side_sizer.Add(unmonitored_title, 0, wx.TOP | wx.ALL, 10)
+
+        # --- Unmonitored Devices Section ---
+        for device_name in non_monitored_list:
+            device_id = self.names.query(device_name)
+            device = self.devices.get_device(device_id)
+
+            if device_id is not None:
+                hbox = wx.BoxSizer(wx.HORIZONTAL)
+
+                # Device name label
+                label = wx.StaticText(self, label=device_name)
+                hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+                # Monitor button
+                monitor_btn = wx.Button(self, wx.ID_ANY, label="Monitor")
+                monitor_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.monitor_command(d))
+                hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
+
+                # Optional: Flip Switch button
+                if device.device_kind == self.devices.SWITCH:
+                    flip_btn = wx.Button(self, wx.ID_ANY, label="Flip Switch")
+                    flip_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.toggle_switch(d))
+                    hbox.Add(flip_btn, 0, wx.RIGHT, 5)
+
+                self.side_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
+        
 
     def on_menu(self, event):
         """Handle the event when the user selects a menu item."""
@@ -443,6 +522,16 @@ class Gui(wx.Frame):
             self.invalid_command()
 
 
+    def toggle_switch(self, device_id):
+        """Toggle the state of the specified switch."""
+        device = self.devices.get_device(device_id)
+        if device is None or device.device_kind != self.devices.SWITCH:
+            self.invalid_device_id()
+            return
+        current_value = self.monitors.get_monitor_signal(device_id, None)
+        new_value = "0" if current_value == "1" else "1"
+        self.switch_command(device_id, new_value)
+        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
 
 
     def help_command(self):
@@ -466,9 +555,11 @@ class Gui(wx.Frame):
                                                        self.cycles_completed)
             if monitor_error == self.monitors.NO_ERROR:
                 self.successful_command()
+                self.populate_side_sizer()  # Refresh the side sizer to reflect changes
                 self.continue_command("0")
             else:
                 self.unsuccessful_command()  
+            
 
     def zap_command(self, text):
         """Remove the specified monitor."""
@@ -480,6 +571,7 @@ class Gui(wx.Frame):
             [port]=self.names.lookup([port])
             if self.monitors.remove_monitor(device, port):
                 self.successful_command()
+                self.populate_side_sizer()
             else:
                 self.unsuccessful_command()
         self.continue_command("0")
