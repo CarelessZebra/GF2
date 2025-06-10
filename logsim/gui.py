@@ -376,7 +376,7 @@ class Gui(wx.Frame):
         
         self.run_network(10)  # Run the network for 10 cycles on startup
         self.invalid_command()  # Set initial output text
-        self.output_text.SetLabel("")
+        self.output_text.SetLabel("软件 Программное обеспечение برمجة")
         self.populate_side_sizer()
         
         self.Layout()
