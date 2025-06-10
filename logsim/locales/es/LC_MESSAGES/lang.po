@@ -1,0 +1,151 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-06-10 21:57+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: gui.py:205
+msgid "Mouse button pressed at: "
+msgstr ""
+
+#: gui.py:208
+msgid "Mouse button released at: "
+msgstr ""
+
+#: gui.py:211
+msgid "Mouse left canvas at: "
+msgstr ""
+
+#: gui.py:219
+msgid "Mouse dragged to: "
+msgstr ""
+
+#: gui.py:220
+msgid ". Pan is now: "
+msgstr ""
+
+#: gui.py:229
+msgid "Negative mouse wheel rotation. Zoom is now: "
+msgstr ""
+
+#: gui.py:238
+msgid "Positive mouse wheel rotation. Zoom is now: "
+msgstr ""
+
+#: gui.py:330
+msgid "&About"
+msgstr ""
+
+#: gui.py:331 gui.py:543
+msgid "Help"
+msgstr ""
+
+#: gui.py:332
+msgid "&Exit"
+msgstr ""
+
+#: gui.py:333
+msgid "&Menu"
+msgstr ""
+
+#: gui.py:340
+msgid "Cycles"
+msgstr ""
+
+#: gui.py:342
+msgid "Run"
+msgstr "Hola"
+
+#: gui.py:409
+msgid "Monitored Devices"
+msgstr ""
+
+#: gui.py:426
+msgid "Unmonitor"
+msgstr ""
+
+#: gui.py:432 gui.py:463
+msgid "Flip Switch"
+msgstr ""
+
+#: gui.py:440
+msgid "Unmonitored Devices"
+msgstr ""
+
+#: gui.py:457
+msgid "Monitor"
+msgstr ""
+
+#: gui.py:479
+msgid ""
+"Logic Simulator\n"
+"Created by Team 1\n"
+"2025"
+msgstr ""
+
+#: gui.py:480
+msgid "About Logsim"
+msgstr ""
+
+#: gui.py:485
+msgid "New spin control value: "
+msgstr ""
+
+#: gui.py:680
+msgid ""
+"Invalid command.\n"
+" Enter 'h' for help."
+msgstr ""
+
+#: gui.py:684
+msgid ""
+"Invalid Number of cycles.\n"
+" Enter 'h' for help."
+msgstr ""
+
+#: gui.py:688
+msgid ""
+"Invalid device ID.\n"
+" Enter 'h' for help."
+msgstr ""
+
+#: gui.py:692
+msgid ""
+"Invalid port ID.\n"
+" Enter 'h' for help."
+msgstr ""
+
+#: gui.py:696
+msgid ""
+"Invalid value.\n"
+" Enter 'h' for help."
+msgstr ""
+
+#: gui.py:700
+msgid ""
+"No command entered.\n"
+" Enter 'h' for help."
+msgstr ""
+
+#: gui.py:704
+msgid "Command executed successfully."
+msgstr ""
+
+#: gui.py:708
+msgid ""
+"Command execution failed.\n"
+" Enter 'h' for help."
+msgstr ""
