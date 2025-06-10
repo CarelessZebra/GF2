@@ -19,7 +19,6 @@ from monitors import Monitors
 from scanner import Scanner
 from parse import Parser
 import gettext
-_ = gettext.gettext
 
 class MyGLCanvas(wxcanvas.GLCanvas):
     """Handle all drawing operations.

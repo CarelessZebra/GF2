@@ -11,83 +11,83 @@ msgstr ""
 "POT-Creation-Date: 2025-06-10 21:57+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Language-Team: Spanish <LI@li.org>\n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: gui.py:205
 msgid "Mouse button pressed at: "
-msgstr ""
+msgstr "Botón del ratón presionado en: "
 
 #: gui.py:208
 msgid "Mouse button released at: "
-msgstr ""
+msgstr "Botón del ratón soltado en: "
 
 #: gui.py:211
 msgid "Mouse left canvas at: "
-msgstr ""
+msgstr "Ratón salió del lienzo en: "
 
 #: gui.py:219
 msgid "Mouse dragged to: "
-msgstr ""
+msgstr "Ratón arrastrado a: "
 
 #: gui.py:220
 msgid ". Pan is now: "
-msgstr ""
+msgstr ". El paneo ahora es: "
 
 #: gui.py:229
 msgid "Negative mouse wheel rotation. Zoom is now: "
-msgstr ""
+msgstr "Rotación negativa de la rueda del ratón. El zoom ahora es: "
 
 #: gui.py:238
 msgid "Positive mouse wheel rotation. Zoom is now: "
-msgstr ""
+msgstr "Rotación positiva de la rueda del ratón. El zoom ahora es: "
 
 #: gui.py:330
 msgid "&About"
-msgstr ""
+msgstr "&Acerca de"
 
 #: gui.py:331 gui.py:543
 msgid "Help"
-msgstr ""
+msgstr "Ayuda"
 
 #: gui.py:332
 msgid "&Exit"
-msgstr ""
+msgstr "&Salir"
 
 #: gui.py:333
 msgid "&Menu"
-msgstr ""
+msgstr "&Menú"
 
 #: gui.py:340
 msgid "Cycles"
-msgstr ""
+msgstr "Ciclos"
 
 #: gui.py:342
 msgid "Run"
-msgstr "Hola"
+msgstr "Ejecutar"
 
 #: gui.py:409
 msgid "Monitored Devices"
-msgstr ""
+msgstr "Dispositivos monitorizados"
 
 #: gui.py:426
 msgid "Unmonitor"
-msgstr ""
+msgstr "Desmonitorizar"
 
 #: gui.py:432 gui.py:463
 msgid "Flip Switch"
-msgstr ""
+msgstr "Cambiar interruptor"
 
 #: gui.py:440
 msgid "Unmonitored Devices"
-msgstr ""
+msgstr "Dispositivos no monitorizados"
 
 #: gui.py:457
 msgid "Monitor"
-msgstr ""
+msgstr "Monitorizar"
 
 #: gui.py:479
 msgid ""
@@ -95,57 +95,74 @@ msgid ""
 "Created by Team 1\n"
 "2025"
 msgstr ""
+"Simulador Lógico\n"
+"Creado por el Equipo 1\n"
+"2025"
 
 #: gui.py:480
 msgid "About Logsim"
-msgstr ""
+msgstr "Acerca de Logsim"
 
 #: gui.py:485
 msgid "New spin control value: "
-msgstr ""
+msgstr "Nuevo valor del control giratorio: "
 
 #: gui.py:680
 msgid ""
 "Invalid command.\n"
 " Enter 'h' for help."
 msgstr ""
+"Comando inválido.\n"
+" Escriba 'h' para ayuda."
 
 #: gui.py:684
 msgid ""
 "Invalid Number of cycles.\n"
 " Enter 'h' for help."
 msgstr ""
+"Número de ciclos inválido.\n"
+" Escriba 'h' para ayuda."
 
 #: gui.py:688
 msgid ""
 "Invalid device ID.\n"
 " Enter 'h' for help."
 msgstr ""
+"ID de dispositivo inválido.\n"
+" Escriba 'h' para ayuda."
 
 #: gui.py:692
 msgid ""
 "Invalid port ID.\n"
 " Enter 'h' for help."
 msgstr ""
+"ID de puerto inválido.\n"
+" Escriba 'h' para ayuda."
 
 #: gui.py:696
 msgid ""
 "Invalid value.\n"
 " Enter 'h' for help."
 msgstr ""
+"Valor inválido.\n"
+" Escriba 'h' para ayuda."
 
 #: gui.py:700
 msgid ""
 "No command entered.\n"
 " Enter 'h' for help."
 msgstr ""
+"No se ingresó ningún comando.\n"
+" Escriba 'h' para ayuda."
 
 #: gui.py:704
 msgid "Command executed successfully."
-msgstr ""
+msgstr "Comando ejecutado con éxito."
 
 #: gui.py:708
 msgid ""
 "Command execution failed.\n"
 " Enter 'h' for help."
 msgstr ""
+"La ejecución del comando falló.\n"
+" Escriba 'h' para ayuda."

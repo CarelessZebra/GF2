@@ -77,19 +77,18 @@ def main(arg_list):
         if parser.parse_network():
             # Initialise an instance of the gui.Gui() class
             app = wx.App()
-
             # Internationalisatiom
-            builtins._ = wx.GetTranslation
             locale = wx.Locale()
-            locale.Init(wx.LANGUAGE_DEFAULT)
-            locale.AddCatalogLookupPathPrefix('./locale')
-            locale.AddCatalog('lang.mo')
-            
+            #locale.Init(wx.LANGUAGE_DEFAULT)
+            locale.Init(wx.LANGUAGE_SPANISH)
+            locale.AddCatalogLookupPathPrefix('./locales')
+            locale.AddCatalog('lang')
+            print(locale.GetName())
+            builtins._ = wx.GetTranslation
             gui = Gui("Logic Simulator", path, names, devices, network,
                       monitors)
             gui.Show(True)
             app.MainLoop()
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])
