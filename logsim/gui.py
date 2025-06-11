@@ -126,17 +126,30 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         size = self.GetClientSize()
         width = size.width
         height = size.height
+        visible_width = self.GetSize().width
+        visible_height = self.GetSize().height
         padding_x = 50
         padding_y = 30
         num_signals = len(self.monitors.monitors_dictionary)
         trace_length = max((len(v) for v in self.monitors.monitors_dictionary.values()), default=1)
+        print(trace_length)
         signal_height = 60 #(height - 2*padding_y) / (num_signals + 1)
         x_step = 80 #(width - 2*padding_x) / max(trace_length, 1)
         trace_width = padding_x * 2 + trace_length * x_step
         trace_height = padding_y * 2 + num_signals * signal_height
-        self.GetParent().h_scroll.SetScrollbar(-self.pan_x, 0, trace_width, 0)
+        scroll_x_range = max(trace_width, visible_width)
+        scroll_y_range = max(trace_height, visible_height)
+
+        parent = self.GetParent()
+        if hasattr(parent, 'h_scroll'):
+            parent.h_scroll.SetScrollbar(-self.pan_x, visible_width, scroll_x_range, visible_width)
+        if hasattr(parent, 'v_scroll'):
+            parent.v_scroll.SetScrollbar(-self.pan_y, visible_height, scroll_y_range, visible_height)
+
+        '''print(trace_width)
+        self.GetParent().h_scroll.SetScrollbar(-self.pan_x, 400, trace_width, 100)
         self.GetParent().v_scroll.SetScrollbar(-self.pan_y, 100, trace_height, 100)
-        self.SetVirtualSize((trace_width, trace_height))
+        self.SetVirtualSize((trace_width, trace_height))'''
         # Draw a all trace signals
         j = 0
         for key in self.monitors.monitors_dictionary:
@@ -158,6 +171,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                 GL.glVertex2f(x, y)
                 GL.glVertex2f(x_next, y)
             GL.glEnd()
+            print(x_next)
 
             # Draw time axis below trace
             GL.glColor3f(0.6, 0.6, 0.6)
@@ -486,6 +500,7 @@ class Gui(wx.Frame):
 
     def populate_side_sizer(self):
         # Clear only the dynamic button section
+        self.device_scroll.Freeze()
         self.device_button_sizer.Clear(delete_windows=True)
 
         monitored_list, non_monitored_list = self.monitors.get_signal_names()
@@ -543,6 +558,8 @@ class Gui(wx.Frame):
         
         self.device_scroll.Layout()
         self.device_scroll.FitInside()
+        self.device_scroll.Thaw()
+        
 
 
     def on_unmonitor_click(self, device_name, event):
