@@ -45,8 +45,18 @@ class Scanner:
 
     Public methods
     -------------
+    skip_whitespace(self, line, column): Skips whitespace characters in the file.
+    skip_comments(self, line, column): Skips comments in the file.
+    get_name(self, column): Reads a sequence of characters and returns it as a
+                        string.
+    get_number(self, column): Reads a sequence of digits and returns it as an
+                        integer.
+    advance(self, column): Advances to the next character in the file.
     get_symbol(self): Translates the next sequence of characters into a symbol
                       and returns the symbol.
+    get_line(self, line_number): Returns a specific line of the input file.
+    print_error_line(self, line, column): Prints the line with a caret (^) under
+                      the character at the specified line and column.
     """
 
     def __init__(self, path, names):

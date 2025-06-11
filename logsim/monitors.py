@@ -163,6 +163,7 @@ class Monitors:
             name_length = len(monitor_name)
             signal_list = self.monitors_dictionary[(device_id, output_id)]
             print(monitor_name + (margin - name_length) * " ", end=": ")
+
             for signal in signal_list:
                 if signal == self.devices.HIGH:
                     print("-", end="")
