@@ -479,7 +479,7 @@ class Gui(wx.Frame):
     def on_v_scroll(self, event):
         pos = self.v_scroll.GetThumbPosition()
         canvas_height = self.canvas.GetSize().height
-        self.canvas.pan_y = pos
+        self.canvas.pan_y = -pos
         self.canvas.init = False
         self.canvas.Refresh()
 
@@ -514,7 +514,7 @@ class Gui(wx.Frame):
             
 
         # --- Unmonitored Section Title ---
-        unmonitored_title = wx.StaticText(self, label="Unmonitored Devices")
+        unmonitored_title = wx.StaticText(self.device_scroll, label=_("Unmonitored Devices"))
         unmonitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         self.device_button_sizer.Add(unmonitored_title, 0, wx.TOP | wx.ALL, 10)
 
@@ -522,26 +522,41 @@ class Gui(wx.Frame):
             device_id = self.names.query(device_name)
             device = self.devices.get_device(device_id)
 
-            if device_id is not None:
-                hbox = wx.BoxSizer(wx.HORIZONTAL)
+            hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-                # Device name label
-                label = wx.StaticText(self, label=device_name)
-                hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            # Device name label
+            label = wx.StaticText(self.device_scroll, label=device_name)
+            hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-                # Monitor button
-                monitor_btn = wx.Button(self, wx.ID_ANY, label="Monitor")
-                monitor_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.monitor_command(d))
-                hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
+            # Monitor button
+            monitor_btn = wx.Button(self.device_scroll, wx.ID_ANY, label=_("Monitor"))
+            monitor_btn.Bind(wx.EVT_BUTTON, partial(self.on_monitor_click, device_name))
+            hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
 
-                # Optional: Flip Switch button
-                if device.device_kind == self.devices.SWITCH:
-                    flip_btn = wx.Button(self, wx.ID_ANY, label="Flip Switch")
-                    flip_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.toggle_switch(d))
-                    hbox.Add(flip_btn, 0, wx.RIGHT, 5)
+            # Optional: Flip Switch button
+            if device and device.device_kind == self.devices.SWITCH:
+                flip_btn = wx.Button(self.device_scroll, wx.ID_ANY, label=_("Flip Switch"))
+                flip_btn.Bind(wx.EVT_BUTTON, partial(self.on_flip_click, device_name))
+                hbox.Add(flip_btn, 0, wx.RIGHT, 5)
 
-                self.side_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
+            self.device_button_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
         
+        self.device_scroll.Layout()
+        self.device_scroll.FitInside()
+
+
+    def on_unmonitor_click(self, device_name, event):
+        self.zap_command(device_name)
+        self.populate_side_sizer()
+
+    def on_flip_click(self, device_name, event):
+        self.monitor_command(device_name)
+        self.toggle_switch(device_name)
+        self.populate_side_sizer()
+
+    def on_monitor_click(self, device_name, event):
+        self.monitor_command(device_name)
+        self.populate_side_sizer()
 
     def on_menu(self, event):
         """Handle the event when the user selects a menu item."""
