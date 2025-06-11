@@ -18,6 +18,7 @@ from network import Network
 from monitors import Monitors
 from scanner import Scanner
 from parse import Parser
+import gettext
 from functools import partial
 from wx.lib.scrolledpanel import ScrolledPanel
 
@@ -220,13 +221,13 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         if event.ButtonDown():
             self.last_mouse_x = event.GetX()
             self.last_mouse_y = event.GetY()
-            text = "".join(["Mouse button pressed at: ", str(event.GetX()),
+            text = "".join([_("Mouse button pressed at: "), str(event.GetX()),
                             ", ", str(event.GetY())])
         if event.ButtonUp():
-            text = "".join(["Mouse button released at: ", str(event.GetX()),
+            text = "".join([_("Mouse button released at: "), str(event.GetX()),
                             ", ", str(event.GetY())])
         if event.Leaving():
-            text = "".join(["Mouse left canvas at: ", str(event.GetX()),
+            text = "".join([_("Mouse left canvas at: "), str(event.GetX()),
                             ", ", str(event.GetY())])
         if event.Dragging():
             
@@ -235,8 +236,8 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             self.last_mouse_x = event.GetX()
             self.last_mouse_y = event.GetY()
             self.init = False
-            text = "".join(["Mouse dragged to: ", str(event.GetX()),
-                            ", ", str(event.GetY()), ". Pan is now: ",
+            text = "".join([_("Mouse dragged to: "), str(event.GetX()),
+                            ", ", str(event.GetY()), _(". Pan is now: "),
                             str(self.pan_x), ", ", str(self.pan_y)])'''
         if event.GetWheelRotation() < 0:
             '''self.zoom *= (1.0 + (
@@ -245,7 +246,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             self.pan_x -= (self.zoom - old_zoom) * ox
             self.pan_y -= (self.zoom - old_zoom) * oy
             self.init = False
-            text = "".join(["Negative mouse wheel rotation. Zoom is now: ",
+            text = "".join([_("Negative mouse wheel rotation. Zoom is now: "),
                             str(self.zoom)])
         if event.GetWheelRotation() > 0:
             self.zoom /= (1.0 - (
@@ -254,7 +255,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             self.pan_x -= (self.zoom - old_zoom) * ox
             self.pan_y -= (self.zoom - old_zoom) * oy
             self.init = False
-            text = "".join(["Positive mouse wheel rotation. Zoom is now: ",
+            text = "".join([_("Positive mouse wheel rotation. Zoom is now: "),
                             str(self.zoom)])
         if text:
             self.render()
@@ -346,10 +347,10 @@ class Gui(wx.Frame):
         # Configure the file menu
         fileMenu = wx.Menu()
         menuBar = wx.MenuBar()
-        fileMenu.Append(wx.ID_ABOUT, "&About")
-        fileMenu.Append(wx.ID_HELP_COMMANDS, 'Help')
-        fileMenu.Append(wx.ID_EXIT, "&Exit")
-        menuBar.Append(fileMenu, "&Menu")
+        fileMenu.Append(wx.ID_ABOUT, _("&About"))
+        fileMenu.Append(wx.ID_HELP_COMMANDS, _('Help'))
+        fileMenu.Append(wx.ID_EXIT, _("&Exit"))
+        menuBar.Append(fileMenu, _("&Menu"))
         self.SetMenuBar(menuBar)
 
         # Canvas for drawing signals
@@ -382,9 +383,9 @@ class Gui(wx.Frame):
 
 
         # Configure the widgets
-        self.text = wx.StaticText(self, wx.ID_ANY, "Cycles")
+        self.text = wx.StaticText(self, wx.ID_ANY, _("Cycles"))
         self.spin = wx.SpinCtrl(self, wx.ID_ANY, "10")
-        self.run_button = wx.Button(self, wx.ID_ANY, "Run")
+        self.run_button = wx.Button(self, wx.ID_ANY, _("Run"))
         self.output_text = wx.StaticText(self, wx.ID_ANY, "",style=wx.TE_READONLY| wx.TE_MULTILINE)
         self.text_box = wx.TextCtrl(self, wx.ID_ANY, "",
                                     style=wx.TE_PROCESS_ENTER)
@@ -451,7 +452,7 @@ class Gui(wx.Frame):
         
         self.run_network(10)  # Run the network for 10 cycles on startup
         self.invalid_command()  # Set initial output text
-        self.output_text.SetLabel("")
+        self.output_text.SetLabel("软件 Программное обеспечение برمجة")
         self.populate_side_sizer()
         
         self.Layout()
@@ -490,7 +491,7 @@ class Gui(wx.Frame):
         monitored_list, non_monitored_list = self.monitors.get_signal_names()
 
         # --- Monitored Devices ---
-        monitored_title = wx.StaticText(self.device_scroll, label="Monitored Devices")
+        monitored_title = wx.StaticText(self.device_scroll, label=_("Monitored Devices"))
         monitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         self.device_button_sizer.Add(monitored_title, 0, wx.ALL, 5)
 
@@ -501,62 +502,46 @@ class Gui(wx.Frame):
             hbox = wx.BoxSizer(wx.HORIZONTAL)
             label = wx.StaticText(self.device_scroll, label=device_name)
             hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-            unmonitor_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Unmonitor")
+            unmonitor_btn = wx.Button(self.device_scroll, wx.ID_ANY, label=_("Unmonitor"))
             #unmonitor_btn.SetBackgroundColour(wx.Colour(200, 0, 0))
             unmonitor_btn.Bind(wx.EVT_BUTTON, partial(self.on_unmonitor_click, device_name))
             hbox.Add(unmonitor_btn, 0, wx.RIGHT, 5)
             if device and device.device_kind == self.devices.SWITCH:
-                flip_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Flip Switch")
+                flip_btn = wx.Button(self.device_scroll, wx.ID_ANY, label=_("Flip Switch"))
                 flip_btn.Bind(wx.EVT_BUTTON, partial(self.on_flip_click, device_name))
                 hbox.Add(flip_btn, 0, wx.RIGHT, 5)
             self.device_button_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
             
 
-        # --- Unmonitored Devices ---
-        unmonitored_title = wx.StaticText(self.device_scroll, label="Unmonitored Devices")
+        # --- Unmonitored Section Title ---
+        unmonitored_title = wx.StaticText(self, label="Unmonitored Devices")
         unmonitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         self.device_button_sizer.Add(unmonitored_title, 0, wx.TOP | wx.ALL, 10)
 
         for device_name in non_monitored_list:
             device_id = self.names.query(device_name)
             device = self.devices.get_device(device_id)
-            #if device_id is not None:
-            hbox = wx.BoxSizer(wx.HORIZONTAL)
-            label = wx.StaticText(self.device_scroll, label=device_name)
-            hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-            monitor_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Monitor")
-            #monitor_btn.SetBackgroundColour(wx.Colour(0, 200, 0))
-            monitor_btn.Bind(wx.EVT_BUTTON, partial(self.on_monitor_click, device_name))
-            hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
-            if device and device.device_kind == self.devices.SWITCH:
-                flip_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Flip Switch")
-                flip_btn.Bind(wx.EVT_BUTTON, partial(self.on_flip_click, device_name))
-                hbox.Add(flip_btn, 0, wx.RIGHT, 5)
-            self.device_button_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
 
-        # Refresh layout
-        #self.device_scroll.SetScrollbars(1, 1, 1000, 1000)  # Arbitrary large max width/height
-        self.device_scroll.Layout()
-        #self.device_scroll.FitInside()
+            if device_id is not None:
+                hbox = wx.BoxSizer(wx.HORIZONTAL)
 
+                # Device name label
+                label = wx.StaticText(self, label=device_name)
+                hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
+                # Monitor button
+                monitor_btn = wx.Button(self, wx.ID_ANY, label="Monitor")
+                monitor_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.monitor_command(d))
+                hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
 
+                # Optional: Flip Switch button
+                if device.device_kind == self.devices.SWITCH:
+                    flip_btn = wx.Button(self, wx.ID_ANY, label="Flip Switch")
+                    flip_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.toggle_switch(d))
+                    hbox.Add(flip_btn, 0, wx.RIGHT, 5)
 
-    def on_unmonitor_click(self, device_name, event):
-        self.zap_command(device_name)
-        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
-        #self.side_sizer.Layout  # Redraw the canvas to reflect changes
-
-    def on_flip_click(self, device_name, event):
-        self.monitor_command(device_name)
-        self.toggle_switch(device_name)
-        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
-        #self.side_sizer.Layout() # Redraw the canvas to reflect changes
-
-    def on_monitor_click(self, device_name, event):
-        self.monitor_command(device_name)
-        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
-        #self.side_sizer.Layout()  # Redraw the canvas to reflect changes
+                self.side_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
+        
 
     def on_menu(self, event):
         """Handle the event when the user selects a menu item."""
@@ -567,12 +552,13 @@ class Gui(wx.Frame):
             self.help_command()
 
         if Id == wx.ID_ABOUT:
-            wx.MessageBox("Logic Simulator\nCreated by Team 1\n2025",
-                          "About Logsim", wx.ICON_INFORMATION | wx.OK)
+            wx.MessageBox(_("Logic Simulator\nCreated by Team 1\n2025"),
+                          _("About Logsim"), wx.ICON_INFORMATION | wx.OK)
 
     def on_spin(self, event):
         """Handle the event when the user changes the spin control value."""
         spin_value = self.spin.GetValue()
+        text = "".join(["New spin control value: ", str(spin_value)])
         self.canvas.render()
 
     def on_run_button(self, event):
@@ -627,7 +613,7 @@ class Gui(wx.Frame):
         with open("Help.txt", "r") as file:
             help_text = file.read()
         self.output_text.SetLabel("")
-        wx.MessageBox(help_text, "Help", wx.ICON_INFORMATION | wx.OK)
+        wx.MessageBox(help_text, _("Help"), wx.ICON_INFORMATION | wx.OK)
 
     def monitor_command(self, text):
         """Set the specified monitor."""
@@ -763,35 +749,34 @@ class Gui(wx.Frame):
             self.invalid_value()
             return None
 
-
     def invalid_command(self):
         """Display an error message for invalid input."""
-        self.output_text.SetLabel("Invalid command.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("Invalid command.\n Enter 'h' for help."))
 
     def invalid_cycles(self):
         """Display an error message for invalid cycle input."""
-        self.output_text.SetLabel("Invalid Number of cycles.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("Invalid Number of cycles.\n Enter 'h' for help."))
 
     def invalid_device_id(self):
         """Display an error message for invalid device ID."""
-        self.output_text.SetLabel("Invalid device ID.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("Invalid device ID.\n Enter 'h' for help."))
     
     def invalid_port_id(self):
         """Display an error message for invalid port ID."""
-        self.output_text.SetLabel("Invalid port ID.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("Invalid port ID.\n Enter 'h' for help."))
 
     def invalid_value(self):
         """Display an error message for invalid value."""
-        self.output_text.SetLabel("Invalid value.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("Invalid value.\n Enter 'h' for help."))
     
     def empty_input(self):
         """Display an error message for empty input."""
-        self.output_text.SetLabel("No command entered.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("No command entered.\n Enter 'h' for help."))
 
     def successful_command(self):
         """Display a success message."""
-        self.output_text.SetLabel("Command executed successfully.")
+        self.output_text.SetLabel(_("Command executed successfully."))
     
     def unsuccessful_command(self):
         """Display an error message for unsuccessful command."""
-        self.output_text.SetLabel("Command execution failed.\n Enter 'h' for help.")
+        self.output_text.SetLabel(_("Command execution failed.\n Enter 'h' for help."))
