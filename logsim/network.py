@@ -335,25 +335,34 @@ class Network:
             return False
         
    
-    
-
     def execute_siggen(self, device_id):
-        """Advance a SIGGEN device one step through its user waveform."""
+        """
+        Complete the edge transition for a SIGGEN device.
+
+        When the output is RISING or FALLING this method drives it on to the
+        final steady value (HIGH or LOW).  Returns True if successful.
+        """
         device = self.devices.get_device(device_id)
-        # step the pattern pointer
-        device.clock_counter = (device.clock_counter + 1) % len(device.siggen_list)
-        # fetch the desired next bit
-        target = device.siggen_list[device.clock_counter]
-        # get current output signal
         output_signal = device.outputs[None]
-        # update (so edges get labeled RISING/FALLING properly)
-        new_signal = self.update_signal(output_signal, target)
+
+        if output_signal == self.devices.RISING:
+            new_signal = self.update_signal(output_signal, self.devices.HIGH)
+            if new_signal is None:  # update is unsuccessful
+                return False
+        elif output_signal == self.devices.FALLING:
+            new_signal = self.update_signal(output_signal, self.devices.LOW)
+            if new_signal is None:  # update is unsuccessful
+                return False
+        elif output_signal in (self.devices.HIGH, self.devices.LOW):
+            return True           # already steady – nothing to do
+        else:
+            return False          # invalid signal
+
         if new_signal is None:
             return False
+
         device.outputs[None] = new_signal
-        return True
-
-
+        return True    
 
 
     def update_clocks(self):
@@ -370,6 +379,25 @@ class Network:
                 elif output_signal == self.devices.LOW:
                     device.outputs[None] = self.devices.RISING
             device.clock_counter += 1
+
+    def update_siggens(self):
+        """Advance all SIGGEN devices one step and label edges if required."""
+        siggen_devices = self.devices.find_devices(self.devices.SIGGEN)
+        for device_id in siggen_devices:
+            device = self.devices.get_device(device_id)
+
+            # Move to the next element in the user pattern
+            
+            target = device.siggen_list[device.clock_counter]
+
+            # Current output level (may already be in a transient state)
+            current_signal = self.get_output_signal(device_id, output_id=None)
+
+            # Use the common helper so steady-state detection works uniformly
+            new_signal = self.update_signal(current_signal, target)
+            if new_signal is not None:
+                device.outputs[None] = new_signal
+            device.clock_counter = (device.clock_counter + 1) % len(device.siggen_list)
 
     def execute_network(self):
         """Execute all the devices in the network for one simulation cycle.
@@ -388,6 +416,8 @@ class Network:
 
         # This sets clock signals to RISING or FALLING, where necessary
         self.update_clocks()
+        # update siggen
+        self.update_siggens()
 
         # Number of iterations to wait for the signals to settle before
         # declaring the network unstable
@@ -405,6 +435,9 @@ class Network:
             # the clock
             for device_id in d_type_devices:  # execute DTYPE devices
                 if not self.execute_d_type(device_id):
+                    return False
+            for device_id in siggen_devices:
+                if not self.execute_siggen(device_id):
                     return False
             for device_id in clock_devices:  # complete clock executions
                 if not self.execute_clock(device_id):
@@ -429,9 +462,6 @@ class Network:
                 if not self.execute_gate(device_id, None, None):
                     return False
                 
-            for device_id in siggen_devices:
-                if not self.execute_siggen(device_id):
-                    return False
             if self.steady_state:
                 break
         return self.steady_state
