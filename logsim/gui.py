@@ -18,7 +18,8 @@ from network import Network
 from monitors import Monitors
 from scanner import Scanner
 from parse import Parser
-
+from functools import partial
+from wx.lib.scrolledpanel import ScrolledPanel
 
 class MyGLCanvas(wxcanvas.GLCanvas):
     """Handle all drawing operations.
@@ -77,6 +78,10 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         self.devices = devices
         self.monitors = monitors
 
+        self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
+        self.SetVirtualSize((800, 600))  # initial virtual size
+
+
     def init_gl(self):
         """Configure and initialise the OpenGL context."""
         size = self.GetClientSize()
@@ -101,12 +106,21 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             self.init = True
 
         # Clear everything
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT)
 
 
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        GL.glMatrixMode(GL.GL_MODELVIEW)
+        #scroll_x, scroll_y = self.GetParent().GetViewStart()
+        #scroll_pixels_x = scroll_x * 10  # Multiply by scroll rate
+        #scroll_pixels_y = scroll_y * 10
+
         GL.glLoadIdentity()
+        #GL.glTranslated(self.pan_x - scroll_pixels_x,
+        #                self.pan_y + scroll_pixels_y, 0.0)
+        GL.glTranslated(self.pan_x,self.pan_y, 0.0)
+        GL.glScaled(self.zoom, self.zoom, self.zoom)
+
+        #GL.glMatrixMode(GL.GL_MODELVIEW)
+        #GL.glLoadIdentity()
 
         size = self.GetClientSize()
         width = size.width
@@ -115,9 +129,13 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         padding_y = 30
         num_signals = len(self.monitors.monitors_dictionary)
         trace_length = max((len(v) for v in self.monitors.monitors_dictionary.values()), default=1)
-        signal_height = (height - 2*padding_y) / (num_signals + 1)
-        x_step = (width - 2*padding_x) / max(trace_length, 1)
-
+        signal_height = 60 #(height - 2*padding_y) / (num_signals + 1)
+        x_step = 80 #(width - 2*padding_x) / max(trace_length, 1)
+        trace_width = padding_x * 2 + trace_length * x_step
+        trace_height = padding_y * 2 + num_signals * signal_height
+        self.GetParent().h_scroll.SetScrollbar(-self.pan_x, 0, trace_width, 0)
+        self.GetParent().v_scroll.SetScrollbar(-self.pan_y, 100, trace_height, 100)
+        self.SetVirtualSize((trace_width, trace_height))
         # Draw a all trace signals
         j = 0
         for key in self.monitors.monitors_dictionary:
@@ -156,6 +174,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                 GL.glVertex2f(tick_x, axis_y + 3)
                 GL.glEnd()
                 self.render_text(str(i), tick_x - 5, axis_y - 15)
+
 
             # Draw device name to the left of trace
             name = self.names.get_name_string(key[0])
@@ -210,16 +229,17 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             text = "".join(["Mouse left canvas at: ", str(event.GetX()),
                             ", ", str(event.GetY())])
         if event.Dragging():
-            self.pan_x += event.GetX() - self.last_mouse_x
+            
+            '''self.pan_x += event.GetX() - self.last_mouse_x
             self.pan_y -= event.GetY() - self.last_mouse_y
             self.last_mouse_x = event.GetX()
             self.last_mouse_y = event.GetY()
             self.init = False
             text = "".join(["Mouse dragged to: ", str(event.GetX()),
                             ", ", str(event.GetY()), ". Pan is now: ",
-                            str(self.pan_x), ", ", str(self.pan_y)])
+                            str(self.pan_x), ", ", str(self.pan_y)])'''
         if event.GetWheelRotation() < 0:
-            self.zoom *= (1.0 + (
+            '''self.zoom *= (1.0 + (
                 event.GetWheelRotation() / (20 * event.GetWheelDelta())))
             # Adjust pan so as to zoom around the mouse position
             self.pan_x -= (self.zoom - old_zoom) * ox
@@ -239,7 +259,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         if text:
             self.render()
         else:
-            self.Refresh()  # triggers the paint event
+            self.Refresh()  # triggers the paint event'''
 
     def render_text(self, text, x_pos, y_pos):
         """Handle text drawing operations."""
@@ -333,7 +353,33 @@ class Gui(wx.Frame):
         self.SetMenuBar(menuBar)
 
         # Canvas for drawing signals
+        #self.canvas_scroll = wx.ScrolledWindow(self, style=wx.VSCROLL| wx.HSCROLL)
+        #self.canvas_scroll.SetScrollRate(10, 10)
+        #self.canvas_scroll.SetupScrolling()
+         # Set minimum size for scrolling
         self.canvas = MyGLCanvas(self, devices, monitors, names)
+        #canvas_sizer = wx.BoxSizer(wx.VERTICAL)
+        #canvas_sizer.Add(self.canvas, 1, wx.EXPAND)
+        #self.canvas_scroll.SetSizer(canvas_sizer)
+
+        canvas_area = wx.BoxSizer(wx.VERTICAL)
+        h_scrollbar = wx.ScrollBar(self, style=wx.SB_HORIZONTAL)
+        v_scrollbar = wx.ScrollBar(self, style=wx.SB_VERTICAL)
+
+        canvas_area.Add(self.canvas, 1, wx.EXPAND)
+        canvas_area.Add(h_scrollbar, 0, wx.EXPAND)
+        
+
+        self.h_scroll = h_scrollbar
+        self.v_scroll = v_scrollbar
+
+        self.h_scroll.SetScrollbar(0, 100, 1000, 100)
+        self.v_scroll.SetScrollbar(0, 100, 1000, 100)
+
+        self.h_scroll.Bind(wx.EVT_SCROLL, self.on_h_scroll)
+        self.v_scroll.Bind(wx.EVT_SCROLL, self.on_v_scroll)
+
+
 
         # Configure the widgets
         self.text = wx.StaticText(self, wx.ID_ANY, "Cycles")
@@ -361,17 +407,46 @@ class Gui(wx.Frame):
         # Configure sizers for layout
         self.main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.side_sizer = wx.BoxSizer(wx.VERTICAL)
+        
 
-        self.main_sizer.Add(self.canvas, 5, wx.EXPAND | wx.ALL, 5)
+        self.main_sizer.Add(canvas_area, 5, wx.EXPAND | wx.ALL, 5)
+        self.main_sizer.Add(v_scrollbar,0,wx.EXPAND)
         self.main_sizer.Add(self.side_sizer, 1, wx.ALL, 5)
+        
+        #self.device_scroll = wx.ScrolledWindow(self, style=wx.VSCROLL)
+        #self.device_scroll.SetScrollRate(5, 5)
+        self.device_scroll = ScrolledPanel(self, style=wx.VSCROLL)
+        self.device_scroll.SetupScrolling()
+
+        self.device_button_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.device_scroll.SetSizer(self.device_button_sizer)
+
+
+
+        
+
 
         self.side_sizer.Add(self.text, 1, wx.TOP, 10)
         self.side_sizer.Add(self.spin, 1, wx.ALL, 5)
         self.side_sizer.Add(self.run_button, 1, wx.ALL, 5)
         self.side_sizer.Add(self.text_box, 1, wx.ALL, 5)
         self.side_sizer.Add(self.output_text, 1, wx.EXPAND | wx.ALL, 5)
+        #self.side_sizer.Add(self.device_scroll, 1, wx.EXPAND | wx.ALL, 5)
+        self.device_scroll.SetMinSize((150, 450))  # or whatever minimum height you want
+        self.side_sizer.Add(self.device_scroll, 0, wx.EXPAND | wx.ALL, 5)
+        '''self.top_controls = wx.BoxSizer(wx.VERTICAL)
+        self.top_controls.Add(self.text, 0, wx.TOP, 10)
+        self.top_controls.Add(self.spin, 0, wx.ALL, 5)
+        self.top_controls.Add(self.run_button, 0, wx.ALL, 5)
+        self.top_controls.Add(self.text_box, 0, wx.ALL, 5)
+        self.top_controls.Add(self.output_text, 0, wx.EXPAND | wx.ALL, 5)
 
-        self.SetSizeHints(600, 600)
+        self.side_sizer.Add(self.top_controls, 0, wx.EXPAND)
+        self.side_sizer.Add(self.device_scroll, 1, wx.EXPAND | wx.ALL, 5)
+        self.device_scroll.SetMinSize((150, 400))'''
+
+
+        self.SetSizeHints(600, 680)
         self.SetSizer(self.main_sizer)
         
         self.run_network(10)  # Run the network for 10 cycles on startup
@@ -388,83 +463,100 @@ class Gui(wx.Frame):
 
         #add buttons to the side sizer for every monitored and non-monitored device allowing the user to monitor or unmonitor the device
         # the user can also switch the device state if it is a switch
-# Clear the side_sizer first (optional, for refreshes)
+    # Clear the side_sizer first (optional, for refreshes)
 
         
 
         # Bind the close event to the on_close method
         #self.Bind(wx.EVT_CLOSE, self.on_close)
+    def on_h_scroll(self, event):
+        pos = self.h_scroll.GetThumbPosition()
+        self.canvas.pan_x = -pos
+        self.canvas.init = False
+        self.canvas.Refresh()
+
+    def on_v_scroll(self, event):
+        pos = self.v_scroll.GetThumbPosition()
+        canvas_height = self.canvas.GetSize().height
+        self.canvas.pan_y = pos
+        self.canvas.init = False
+        self.canvas.Refresh()
+
 
     def populate_side_sizer(self):
-        # Clear the sizer
-        for i,child in enumerate(self.side_sizer.GetChildren()):
-            if i>5 and child.GetWindow() is not None:
-                child.GetWindow().Destroy()
-        
+        # Clear only the dynamic button section
+        self.device_button_sizer.Clear(delete_windows=True)
 
         monitored_list, non_monitored_list = self.monitors.get_signal_names()
 
-        # --- Monitored Section Title ---
-        monitored_title = wx.StaticText(self, label="Monitored Devices")
+        # --- Monitored Devices ---
+        monitored_title = wx.StaticText(self.device_scroll, label="Monitored Devices")
         monitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
-        self.side_sizer.Add(monitored_title, 0, wx.ALL, 5)
+        self.device_button_sizer.Add(monitored_title, 0, wx.ALL, 5)
 
-        # --- Monitored Devices Section ---s
         for device_name in monitored_list:
             device_id = self.names.query(device_name)
             device = self.devices.get_device(device_id)
+            #if device_id is not None:
+            hbox = wx.BoxSizer(wx.HORIZONTAL)
+            label = wx.StaticText(self.device_scroll, label=device_name)
+            hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            unmonitor_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Unmonitor")
+            #unmonitor_btn.SetBackgroundColour(wx.Colour(200, 0, 0))
+            unmonitor_btn.Bind(wx.EVT_BUTTON, partial(self.on_unmonitor_click, device_name))
+            hbox.Add(unmonitor_btn, 0, wx.RIGHT, 5)
+            if device and device.device_kind == self.devices.SWITCH:
+                flip_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Flip Switch")
+                flip_btn.Bind(wx.EVT_BUTTON, partial(self.on_flip_click, device_name))
+                hbox.Add(flip_btn, 0, wx.RIGHT, 5)
+            self.device_button_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
+            
 
-            if device_id is not None:
-                hbox = wx.BoxSizer(wx.HORIZONTAL)
-
-                # Device name label
-                label = wx.StaticText(self, label=device_name)
-                hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-
-                # Unmonitor button
-                unmonitor_btn = wx.Button(self, wx.ID_ANY, label="Unmonitor")
-                unmonitor_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.zap_command(d))
-                hbox.Add(unmonitor_btn, 0, wx.RIGHT, 5)
-
-                # Optional: Flip Switch button
-                if device.device_kind == self.devices.SWITCH:
-                    flip_btn = wx.Button(self, wx.ID_ANY, label="Flip Switch")
-                    flip_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.toggle_switch(d))
-                    hbox.Add(flip_btn, 0, wx.RIGHT, 5)
-
-                self.side_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
-
-
-        # --- Unmonitored Section Title ---
-        unmonitored_title = wx.StaticText(self, label="Unmonitored Devices")
+        # --- Unmonitored Devices ---
+        unmonitored_title = wx.StaticText(self.device_scroll, label="Unmonitored Devices")
         unmonitored_title.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
-        self.side_sizer.Add(unmonitored_title, 0, wx.TOP | wx.ALL, 10)
+        self.device_button_sizer.Add(unmonitored_title, 0, wx.TOP | wx.ALL, 10)
 
-        # --- Unmonitored Devices Section ---
         for device_name in non_monitored_list:
             device_id = self.names.query(device_name)
             device = self.devices.get_device(device_id)
+            #if device_id is not None:
+            hbox = wx.BoxSizer(wx.HORIZONTAL)
+            label = wx.StaticText(self.device_scroll, label=device_name)
+            hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            monitor_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Monitor")
+            #monitor_btn.SetBackgroundColour(wx.Colour(0, 200, 0))
+            monitor_btn.Bind(wx.EVT_BUTTON, partial(self.on_monitor_click, device_name))
+            hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
+            if device and device.device_kind == self.devices.SWITCH:
+                flip_btn = wx.Button(self.device_scroll, wx.ID_ANY, label="Flip Switch")
+                flip_btn.Bind(wx.EVT_BUTTON, partial(self.on_flip_click, device_name))
+                hbox.Add(flip_btn, 0, wx.RIGHT, 5)
+            self.device_button_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
 
-            if device_id is not None:
-                hbox = wx.BoxSizer(wx.HORIZONTAL)
+        # Refresh layout
+        #self.device_scroll.SetScrollbars(1, 1, 1000, 1000)  # Arbitrary large max width/height
+        self.device_scroll.Layout()
+        #self.device_scroll.FitInside()
 
-                # Device name label
-                label = wx.StaticText(self, label=device_name)
-                hbox.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-                # Monitor button
-                monitor_btn = wx.Button(self, wx.ID_ANY, label="Monitor")
-                monitor_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.monitor_command(d))
-                hbox.Add(monitor_btn, 0, wx.RIGHT, 5)
 
-                # Optional: Flip Switch button
-                if device.device_kind == self.devices.SWITCH:
-                    flip_btn = wx.Button(self, wx.ID_ANY, label="Flip Switch")
-                    flip_btn.Bind(wx.EVT_BUTTON, lambda event, d=device_name: self.toggle_switch(d))
-                    hbox.Add(flip_btn, 0, wx.RIGHT, 5)
 
-                self.side_sizer.Add(hbox, 0, wx.ALL | wx.EXPAND, 5)
-        
+    def on_unmonitor_click(self, device_name, event):
+        self.zap_command(device_name)
+        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
+        #self.side_sizer.Layout  # Redraw the canvas to reflect changes
+
+    def on_flip_click(self, device_name, event):
+        self.monitor_command(device_name)
+        self.toggle_switch(device_name)
+        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
+        #self.side_sizer.Layout() # Redraw the canvas to reflect changes
+
+    def on_monitor_click(self, device_name, event):
+        self.monitor_command(device_name)
+        self.populate_side_sizer()  # Refresh the side sizer to reflect changes
+        #self.side_sizer.Layout()  # Redraw the canvas to reflect changes
 
     def on_menu(self, event):
         """Handle the event when the user selects a menu item."""
@@ -481,7 +573,6 @@ class Gui(wx.Frame):
     def on_spin(self, event):
         """Handle the event when the user changes the spin control value."""
         spin_value = self.spin.GetValue()
-        text = "".join(["New spin control value: ", str(spin_value)])
         self.canvas.render()
 
     def on_run_button(self, event):
@@ -522,15 +613,12 @@ class Gui(wx.Frame):
             self.invalid_command()
 
 
-    def toggle_switch(self, device_id):
+    def toggle_switch(self, device_name):
         """Toggle the state of the specified switch."""
-        device = self.devices.get_device(device_id)
-        if device is None or device.device_kind != self.devices.SWITCH:
-            self.invalid_device_id()
-            return
-        current_value = self.monitors.get_monitor_signal(device_id, None)
+        device_id = self.read_name(device_name)
+        current_value = str(self.monitors.get_monitor_signal(device_id, None))
         new_value = "0" if current_value == "1" else "1"
-        self.switch_command(device_id, new_value)
+        self.switch_command(device_name, new_value)
         self.populate_side_sizer()  # Refresh the side sizer to reflect changes
 
 
@@ -568,7 +656,8 @@ class Gui(wx.Frame):
             self.invalid_device_id()
         else:
             [device, port] = monitor
-            [port]=self.names.lookup([port])
+            if port is not None:
+                [port]=self.names.lookup([port])
             if self.monitors.remove_monitor(device, port):
                 self.successful_command()
                 self.populate_side_sizer()
