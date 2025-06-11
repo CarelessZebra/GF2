@@ -453,7 +453,7 @@ class Parser:
                 self.error_flag = False
                 return False
             pattern.append(self.symbol.id) # add binary value to pattern
-            print(f"pattern currently {pattern}")
+            #print(f"pattern currently {pattern}")
             self._advance()  # move to next symbol after binary value
 
         self._expect(self.scanner.CLOSEBRAC)
