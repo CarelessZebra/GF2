@@ -170,8 +170,9 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                     y = y_high
                 GL.glVertex2f(x, y)
                 GL.glVertex2f(x_next, y)
+                print(x_next)
             GL.glEnd()
-            print(x_next)
+            
 
             # Draw time axis below trace
             GL.glColor3f(0.6, 0.6, 0.6)

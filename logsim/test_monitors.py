@@ -62,7 +62,6 @@ def test_make_monitor_gives_errors(new_monitors):
 
     # Make a new switch device
     devices.make_device(SW3_ID, SWITCH_ID, 0)
-
     assert new_monitors.make_monitor(SW3_ID, None) == new_monitors.NO_ERROR
 
 
