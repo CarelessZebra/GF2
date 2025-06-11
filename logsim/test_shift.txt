@@ -6,6 +6,7 @@ DEVICES {
     SET1  = SWITCH(0);
     CLR1  = SWITCH(0);
     D1,D2,D3,D4 = DTYPE;
+    SIG1 = SIGGEN(0,0,1,0,1);
 }
 
 CONNECTIONS {
