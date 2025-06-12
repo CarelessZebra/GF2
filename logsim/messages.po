@@ -8,70 +8,70 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-12 13:13+0100\n"
+"POT-Creation-Date: 2025-06-12 13:12+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: DERMOT HARTLEY <EMAIL@ADDRESS>\n"
-"Language-Team: Spanish <LI@li.org>\n"
-"Language: es\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: gui.py:239
 msgid "Mouse button pressed at: "
-msgstr "Botón del ratón presionado en: "
+msgstr ""
 
 #: gui.py:242
 msgid "Mouse button released at: "
-msgstr "Botón del ratón soltado en: "
+msgstr ""
 
 #: gui.py:245
 msgid "Mouse left canvas at: "
-msgstr "El ratón salió del lienzo en: "
+msgstr ""
 
 #: gui.py:365
 msgid "&About"
-msgstr "&Acerca de"
+msgstr ""
 
-#: gui.py:366 gui.py:650
+#: gui.py:366 gui.py:650 gui.py:649
 msgid "Help"
-msgstr "Ayuda"
+msgstr ""
 
 #: gui.py:367
 msgid "&Exit"
-msgstr "&Salir"
+msgstr ""
 
 #: gui.py:368
 msgid "&Menu"
-msgstr "&Menú"
+msgstr ""
 
 #: gui.py:401
 msgid "Cycles"
-msgstr "Ciclos"
+msgstr ""
 
 #: gui.py:403
 msgid "Run"
-msgstr "Ejecutar"
+msgstr ""
 
 #: gui.py:510
 msgid "Monitored Devices"
-msgstr "Dispositivos monitorizados"
+msgstr ""
 
 #: gui.py:521
 msgid "Unmonitor"
-msgstr "Dejar de monitorear"
+msgstr ""
 
 #: gui.py:526 gui.py:554
 msgid "Flip Switch"
-msgstr "Cambiar interruptor"
+msgstr ""
 
 #: gui.py:533
 msgid "Unmonitored Devices"
-msgstr "Dispositivos no monitorizados"
+msgstr ""
 
 #: gui.py:548
 msgid "Monitor"
-msgstr "Monitorear"
+msgstr ""
 
 #: gui.py:588
 msgid ""
@@ -79,13 +79,10 @@ msgid ""
 "Created by Team 1\n"
 "2025"
 msgstr ""
-"Simulador Lógico\n"
-"Creado por el Equipo 1\n"
-"2025"
 
 #: gui.py:589
 msgid "About Logsim"
-msgstr "Acerca de Logsim"
+msgstr ""
 
 #: gui.py:649
 msgid ""
@@ -98,71 +95,49 @@ msgid ""
 "    h         - help (this command)\n"
 "    q         - quit the program"
 msgstr ""
-"Comandos de usuario:\n"
-"    r N       - ejecutar la simulación durante N ciclos\n"
-"    c N       - continuar la simulación durante N ciclos\n"
-"    s X N     - establecer el interruptor X a N (0 o 1)\n"
-"    m X       - monitorear la señal X\n"
-"    z X       - dejar de monitorear la señal X\n"
-"    h         - ayuda (este comando)\n"
-"    q         - salir del programa"
 
-#: gui.py:788
+#: gui.py:788 gui.py:787
 msgid ""
 "Invalid command.\n"
 " Enter 'h' for help."
 msgstr ""
-"Comando inválido.\n"
-" Introduzca 'h' para ayuda."
 
-#: gui.py:792
+#: gui.py:792 gui.py:791
 msgid ""
 "Invalid Number of cycles.\n"
 " Enter 'h' for help."
 msgstr ""
-"Número de ciclos inválido.\n"
-" Introduzca 'h' para ayuda."
 
-#: gui.py:796
+#: gui.py:796 gui.py:795
 msgid ""
 "Invalid device ID.\n"
 " Enter 'h' for help."
 msgstr ""
-"ID de dispositivo inválido.\n"
-" Introduzca 'h' para ayuda."
 
-#: gui.py:800
+#: gui.py:800 gui.py:799
 msgid ""
 "Invalid port ID.\n"
 " Enter 'h' for help."
 msgstr ""
-"ID de puerto inválido.\n"
-" Introduzca 'h' para ayuda."
 
-#: gui.py:804
+#: gui.py:804 gui.py:803
 msgid ""
 "Invalid value.\n"
 " Enter 'h' for help."
 msgstr ""
-"Valor inválido.\n"
-" Introduzca 'h' para ayuda."
 
-#: gui.py:808
+#: gui.py:808 gui.py:807
 msgid ""
 "No command entered.\n"
 " Enter 'h' for help."
 msgstr ""
-"No se ingresó ningún comando.\n"
-" Introduzca 'h' para ayuda."
 
-#: gui.py:812
+#: gui.py:812 gui.py:811
 msgid "Command executed successfully."
-msgstr "Comando ejecutado correctamente."
+msgstr ""
 
-#: gui.py:816
+#: gui.py:816 gui.py:815
 msgid ""
 "Command execution failed.\n"
 " Enter 'h' for help."
 msgstr ""
-"La ejecución del comando falló.\n"
-" Introduzca 'h' para ayuda."
