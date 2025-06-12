@@ -81,6 +81,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
 
         self.h_scroll = h_scroll
         self.v_scroll = v_scroll
+        self.oscilliscope_mode = False
 
         self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
         self.SetVirtualSize((800, 600))  # initial virtual size
@@ -100,7 +101,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         GL.glLoadIdentity()
         GL.glTranslated(self.pan_x, self.pan_y, 0.0)
         GL.glScaled(self.zoom, self.zoom, self.zoom)
-
+    
     def render(self):
         """Handle all drawing operations."""
         self.SetCurrent(self.context)
@@ -125,7 +126,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         num_signals = len(self.monitors.monitors_dictionary)
         trace_length = max((len(v) for v in self.monitors.monitors_dictionary.values()), default=1)
         avg_height = int((height - 2*padding_y) / num_signals)
-        signal_height = max(avg_height, 60)
+        signal_height = max(avg_height, 80)
         x_step = 80 #int((width - 2*padding_x) / max(trace_length, 1)) if trace_length <= 30 else 80
         trace_width = padding_x * 2 + trace_length * x_step
         trace_height = padding_y * 2 + num_signals * signal_height
@@ -148,6 +149,14 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                 self.last_scroll_y_range = scroll_y_range
             else:
                 self.v_scroll.SetThumbPosition(current_scroll)
+        if self.oscilliscope_mode: 
+            self.render_oscilliscope(height, signal_height, x_step, padding_x, padding_y, num_signals)
+        else:
+            self.render_static(height, signal_height, x_step, padding_x, padding_y, num_signals)
+        GL.glFlush()
+        self.SwapBuffers()
+
+    def render_static(self,height, signal_height, x_step, padding_x, padding_y, num_signals):
 
         # Draw a all trace signals
         j = 0
@@ -155,9 +164,12 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             trace = self.monitors.monitors_dictionary[key]
             GL.glColor3f(0.0, 0.0, 1.0)
             GL.glBegin(GL.GL_LINE_STRIP)
-
-            y_base = height - padding_y - (j + 0) * signal_height - 50
-            y_high = y_base + 20
+            
+            if num_signals < 8: 
+                y_base = height - (j+1)*height//(1+num_signals) -signal_height//4 - 10
+            else:
+                y_base = height - padding_y - (j + 0) * signal_height - 50 
+            y_high = y_base + signal_height//2
 
             for i, sig in enumerate(trace):
                 x = padding_x + i * x_step
@@ -169,7 +181,60 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                     y = y_high
                 GL.glVertex2f(x, y)
                 GL.glVertex2f(x_next, y)
-                print(x_next)
+            GL.glEnd()
+
+            # Draw time axis below trace
+            GL.glColor3f(0.6, 0.6, 0.6)
+            axis_y = y_base - 5
+            GL.glBegin(GL.GL_LINES)
+            GL.glVertex2f(padding_x, axis_y)
+            GL.glVertex2f(x_next, axis_y)
+            GL.glEnd()
+
+            # Draw ticks and labels
+            for i in range(len(trace)+1):
+                tick_x = padding_x + i * x_step
+                GL.glBegin(GL.GL_LINES)
+                GL.glVertex2f(tick_x, axis_y - 3)
+                GL.glVertex2f(tick_x, axis_y + 3)
+                GL.glEnd()
+                self.render_text(str(i), tick_x - 5, axis_y - 15)
+
+
+            # Draw device name to the left of trace
+            name = self.names.get_name_string(key[0])
+            pin = self.names.get_name_string(key[1]) if key[1] is not None else None
+            label = f"{name}.{pin}" if pin is not None else str(name)
+            self.render_text(label, 5, (y_base + y_high)//2)
+
+            j += 1
+
+    def render_oscilliscope(self, height, signal_height, x_step, padding_x, padding_y, num_signals):
+        # Draw a all trace signals
+        j = 0
+        for key in self.monitors.oscilloscope_buffer:
+            trace = self.monitors.oscilloscope_buffer[key]
+            GL.glColor3f(0.0, 0.0, 1.0)
+            GL.glBegin(GL.GL_LINE_STRIP)
+
+            y_base = height - padding_y - (j + 0) * signal_height - 50
+            y_high = y_base + 20
+
+            for i, sig in enumerate(trace):
+                visible_points = len(trace)
+                x_offset = max(0, visible_points - 100)  # scroll left if buffer full
+                x = padding_x + (i - x_offset) * x_step
+                x_next = padding_x + (i + 1 - x_offset) * x_step
+
+                #x = padding_x + i * x_step
+                #x_next = padding_x+ (i + 1) * x_step
+                y = int(sig)
+                if y == 0:
+                    y = y_base
+                else:
+                    y = y_high
+                GL.glVertex2f(x, y)
+                GL.glVertex2f(x_next, y)
             GL.glEnd()
 
             # Draw time axis below trace
@@ -197,11 +262,6 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             self.render_text(label, 5, y_base + 5)
 
             j += 1
-        # We have been drawing to the back buffer, flush the graphics pipeline
-        # and swap the back buffer to the front
-        GL.glFlush()
-        self.SwapBuffers()
-
 
 
     def on_paint(self, event):
@@ -360,6 +420,7 @@ class Gui(wx.Frame):
         # Configure the file menu
         fileMenu = wx.Menu()
         menuBar = wx.MenuBar()
+        fileMenu.Append(wx.ID_FILE, _("&File"))
         fileMenu.Append(wx.ID_ABOUT, _("&About"))
         fileMenu.Append(wx.ID_HELP_COMMANDS, _('Help'))
         fileMenu.Append(wx.ID_EXIT, _("&Exit"))
@@ -378,13 +439,18 @@ class Gui(wx.Frame):
         canvas_area = wx.BoxSizer(wx.VERTICAL)
         h_scrollbar = wx.ScrollBar(self, style=wx.SB_HORIZONTAL)
         v_scrollbar = wx.ScrollBar(self, style=wx.SB_VERTICAL)
-
+        self.oscilliscope_area = wx.BoxSizer(wx.HORIZONTAL)
+        self.oscilliscope_button = wx.Button(self, wx.ID_ANY, _("Oscilliscope Mode (Turn On)"))
+        self.oscilliscope_button.Bind(wx.EVT_BUTTON, self.on_oscilliscope_button)
+        self.oscilliscope_area.AddStretchSpacer(1)
+        self.oscilliscope_area.Add(self.oscilliscope_button, 0, wx.ALIGN_CENTER | wx.TOP, 5)
+        self.oscilliscope_area.AddStretchSpacer(1)
         
-
         self.h_scroll = h_scrollbar
         self.v_scroll = v_scrollbar
         self.canvas = MyGLCanvas(self, devices, monitors, names, self.h_scroll, self.v_scroll)
-
+        
+        canvas_area.Add(self.oscilliscope_area, 0, wx.ALIGN_CENTER | wx.TOP, 5)
         canvas_area.Add(self.canvas, 1, wx.EXPAND)
         canvas_area.Add(h_scrollbar, 0, wx.EXPAND)
 
@@ -394,6 +460,10 @@ class Gui(wx.Frame):
         self.h_scroll.Bind(wx.EVT_SCROLL, self.on_h_scroll)
         self.v_scroll.Bind(wx.EVT_SCROLL, self.on_v_scroll)
         self.last_scroll_y_range = None
+        #self.oscilliscope_mode = False
+
+        self.oscilloscope_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_oscilloscope_tick, self.oscilloscope_timer)
 
 
 
@@ -406,6 +476,7 @@ class Gui(wx.Frame):
                                     style=wx.TE_PROCESS_ENTER)
         
         #Initial simulation variables
+        self.path = path
         self.names = names
         self.devices = devices
         self.monitors = monitors
@@ -470,7 +541,7 @@ class Gui(wx.Frame):
         # the user can also switch the device state if it is a switch
     # Clear the side_sizer first (optional, for refreshes)
 
-        
+    
 
         # Bind the close event to the on_close method
         #self.Bind(wx.EVT_CLOSE, self.on_close)
@@ -488,7 +559,29 @@ class Gui(wx.Frame):
         self.canvas.init = False
         self.canvas.Refresh()
 
+    def on_oscilliscope_button(self, event): 
+        self.canvas.oscilliscope_mode = not self.canvas.oscilliscope_mode
+        if self.canvas.oscilliscope_mode: 
+            self.monitors.oscilloscope_buffer.clear()
+            self.oscilloscope_timer.Start(1000)
+            #self.oscilliscope_button.SetBackgroundColour('dark grey')
+            self.oscilliscope_button.SetBackgroundColour(wx.Colour(80, 80, 80))  # dark grey
+            self.oscilliscope_button.SetForegroundColour(wx.Colour(255, 255, 255))
+            self.oscilliscope_button.SetLabelText('Oscilliscope Mode (Turn Off)')
+        else:
+            self.oscilloscope_timer.Stop()
+            self.oscilliscope_button.SetBackgroundColour(wx.NullColour)  # resets to default
+            self.oscilliscope_button.SetForegroundColour(wx.NullColour)
 
+            self.oscilliscope_button.SetLabelText('Oscilliscope Mode (Turn On)')
+        self.oscilliscope_button.Layout()
+        #self.oscilliscope_button.Fit(self)
+        self.oscilliscope_button.Refresh()
+
+    def on_oscilloscope_tick(self, event):
+        self.network.execute_network()
+        self.monitors.record_oscilloscope_signals(maxlen=10)
+        self.canvas.Refresh()
 
     def populate_side_sizer(self):
         # Clear only the dynamic button section
@@ -560,9 +653,13 @@ class Gui(wx.Frame):
 
     def on_flip_click(self, device_name, event):
         self.canvas.Freeze()
-        self.monitor_command(device_name)
-        self.toggle_switch(device_name)
-        self.zap_command(device_name)
+        device_id, port = self.devices.get_signal_ids(device_name)
+        if (device_id, port)in self.monitors.monitors_dictionary:
+            self.toggle_switch(device_name)
+        else:
+            self.monitor_command(device_name)
+            self.toggle_switch(device_name)
+            self.zap_command(device_name)
         self.populate_side_sizer()
         self.canvas.Thaw()
 
@@ -573,14 +670,36 @@ class Gui(wx.Frame):
     def on_menu(self, event):
         """Handle the event when the user selects a menu item."""
         Id = event.GetId()
-        if Id == wx.ID_EXIT:
+        if Id == wx.ID_FILE:
+            self.show_description_window()
+        elif Id == wx.ID_EXIT:
             self.Close(True)
-        if Id == wx.ID_HELP_COMMANDS:
+        elif Id == wx.ID_HELP_COMMANDS:
             self.help_command()
 
-        if Id == wx.ID_ABOUT:
+        elif Id == wx.ID_ABOUT:
             wx.MessageBox(_("Logic Simulator\nCreated by Team 1\n2025"),
                           _("About Logsim"), wx.ICON_INFORMATION | wx.OK)
+    
+    def show_description_window(self):
+        try:
+            with open(self.path, 'r', encoding='utf-8') as file:
+                content = file.read()
+        except Exception as e:
+            wx.MessageBox(f"Could not read file:\n{e}", "Error", wx.OK | wx.ICON_ERROR)
+            return
+
+        # Create a new modeless frame
+        desc_window = wx.Frame(self, title="Circuit Description", size=(500, 400))
+        panel = wx.Panel(desc_window)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        text_ctrl = wx.TextCtrl(panel, value=content, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP)
+        sizer.Add(text_ctrl, 1, wx.EXPAND | wx.ALL, 10)
+
+        panel.SetSizer(sizer)
+        desc_window.Show()  # modeless, doesn't block main window
+
 
     def on_spin(self, event):
         """Handle the event when the user changes the spin control value."""
@@ -645,6 +764,7 @@ class Gui(wx.Frame):
     def monitor_command(self, text):
         """Set the specified monitor."""
         monitor = self.read_signal_name(text)
+        max_len = 10 if self.canvas.oscilliscope_mode else None
         if monitor is None:
             self.invalid_device_id()
             return
@@ -653,7 +773,7 @@ class Gui(wx.Frame):
             if port is not None:
                 [port] = self.names.lookup([port])
             monitor_error = self.monitors.make_monitor(device, port,
-                                                       self.cycles_completed)
+                                                       self.cycles_completed,max_len)
             if monitor_error == self.monitors.NO_ERROR:
                 self.successful_command()
                 self.populate_side_sizer()  # Refresh the side sizer to reflect changes
@@ -698,7 +818,11 @@ class Gui(wx.Frame):
         """
         for _ in range(N):
             if self.network.execute_network():
-                self.monitors.record_signals()
+                if self.canvas.oscilliscope_mode:
+                    self.monitors.record_oscilloscope_signals(maxlen=10)
+                else:
+                    self.monitors.record_signals()
+
         self.canvas.render()
         self.successful_command()
 
