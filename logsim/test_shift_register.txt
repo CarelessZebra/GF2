@@ -8,6 +8,7 @@ DEVICES {
 }
 
 CONNECTIONS {
+    CLR  = SWITCH(0);
     D_IN -> D1.DATA;
     SET  -> D1.SET;
     CLR  -> D1.CLEAR;
