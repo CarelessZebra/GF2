@@ -165,7 +165,7 @@ def test_no_dev_errors_dtype(tmp_file):
 
 @pytest.mark.parametrize("incorrect_content, error_msg",[
     (" .= XOR;", "device identifier expected"),
-    ("A /= XOR;", "expected '='"),
+    ("A .= XOR;", "expected '='"),
     ("A = XBOR;", "invalid device type"),
     ("A, A = XOR;", "device identifier already used"),
     ("A = SWITCH(2)", "Expected binary input"),

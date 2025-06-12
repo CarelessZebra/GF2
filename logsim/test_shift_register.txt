@@ -1,0 +1,34 @@
+DEVICES {
+    D_IN = CLOCK(20);
+    CLK  = CLOCK(1);
+    SET  = SWITCH(0);
+    CLR  = SWITCH(0);
+    D1,D2,D3,D4 = DTYPE;
+    SIG1 = SIGGEN(0,0,1,0,1);
+}
+
+CONNECTIONS {
+    D_IN -> D1.DATA;
+    SET  -> D1.SET;
+    CLR  -> D1.CLEAR;
+    CLK  -> D1.CLK;
+
+    D1.Q -> D2.DATA;
+    SET  -> D2.SET;
+    CLR  -> D2.CLEAR;
+    SIG1  -> D2.CLK;
+    
+    D2.Q -> D3.DATA;
+    SET  -> D3.SET;
+    CLR  -> D3.CLEAR;
+    CLK  -> D3.CLK;
+
+    D3.Q -> D4.DATA;
+    SET  -> D4.SET;
+    CLR  -> D4.CLEAR;
+    CLK  -> D4.CLK;
+}
+
+MONITOR {
+    CLK, D_IN, D1.Q, D2.Q, D3.Q, D4.Q;
+    }

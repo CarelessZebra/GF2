@@ -6,13 +6,14 @@ DEVICES {
     SET1  = SWITCH(0);
     CLR1  = SWITCH(0);
     D1,D2,D3,D4 = DTYPE;
+    SIG1 = SIGGEN(0,0,1,0,1);
 }
 
 CONNECTIONS {
     D_IN -> D1.DATA;
     SET1  -> D1.SET;
     CLR1  -> D1.CLEAR;
-    CLK1  -> D1.CLK;
+    SIG1  -> D1.CLK;
     
     D1.Q -> D2.DATA;
     SET1  -> D2.SET;
@@ -20,7 +21,7 @@ CONNECTIONS {
     CLK1  -> D2.CLK;
     
     D2.Q -> D3.DATA;
-    SET1  -> D3.SET;
+    SIG1  -> D3.SET;
     CLR1  -> D3.CLEAR;
     CLK1  -> D3.CLK;
 
