@@ -50,7 +50,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                                            operations.
     """
 
-    def __init__(self, parent, devices, monitors, names):
+    def __init__(self, parent, devices, monitors, names, h_scroll  = None, v_scroll = None):
         """Initialise canvas properties and useful variables."""
         super().__init__(parent, -1,
                          attribList=[wxcanvas.WX_GL_RGBA,
@@ -78,6 +78,9 @@ class MyGLCanvas(wxcanvas.GLCanvas):
         self.names = names
         self.devices = devices
         self.monitors = monitors
+
+        self.h_scroll = h_scroll
+        self.v_scroll = v_scroll
 
         self.SetBackgroundStyle(wx.BG_STYLE_CUSTOM)
         self.SetVirtualSize((800, 600))  # initial virtual size
@@ -107,49 +110,45 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             self.init = True
 
         # Clear everything
-
-
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        #scroll_x, scroll_y = self.GetParent().GetViewStart()
-        #scroll_pixels_x = scroll_x * 10  # Multiply by scroll rate
-        #scroll_pixels_y = scroll_y * 10
-
         GL.glLoadIdentity()
-        #GL.glTranslated(self.pan_x - scroll_pixels_x,
-        #                self.pan_y + scroll_pixels_y, 0.0)
         GL.glTranslated(self.pan_x,self.pan_y, 0.0)
         GL.glScaled(self.zoom, self.zoom, self.zoom)
-
-        #GL.glMatrixMode(GL.GL_MODELVIEW)
-        #GL.glLoadIdentity()
+        GL.glMatrixMode(GL.GL_MODELVIEW)
 
         size = self.GetClientSize()
         width = size.width
         height = size.height
-        visible_width = self.GetSize().width
-        visible_height = self.GetSize().height
+      
         padding_x = 50
         padding_y = 30
         num_signals = len(self.monitors.monitors_dictionary)
         trace_length = max((len(v) for v in self.monitors.monitors_dictionary.values()), default=1)
-        print(trace_length)
-        signal_height = 60 #(height - 2*padding_y) / (num_signals + 1)
-        x_step = 80 #(width - 2*padding_x) / max(trace_length, 1)
+        avg_height = int((height - 2*padding_y) / num_signals)
+        signal_height = max(avg_height, 60)
+        x_step = 80 #int((width - 2*padding_x) / max(trace_length, 1)) if trace_length <= 30 else 80
         trace_width = padding_x * 2 + trace_length * x_step
         trace_height = padding_y * 2 + num_signals * signal_height
-        scroll_x_range = max(trace_width, visible_width)
-        scroll_y_range = max(trace_height, visible_height)
+        scroll_x_range = max(trace_width, width)
+        scroll_y_range = max(trace_height, height)
+
+
+        min_pan_y = min(0, height - trace_height)
+        self.pan_y = max(min_pan_y, min(0, self.pan_y))
 
         parent = self.GetParent()
         if hasattr(parent, 'h_scroll'):
-            parent.h_scroll.SetScrollbar(-self.pan_x, visible_width, scroll_x_range, visible_width)
-        if hasattr(parent, 'v_scroll'):
-            parent.v_scroll.SetScrollbar(-self.pan_y, visible_height, scroll_y_range, visible_height)
+            parent.h_scroll.SetScrollbar(-self.pan_x, width, scroll_x_range, width)
+        if self.v_scroll:
+            current_scroll = -int(self.pan_y)
+            current_scroll = max(0, min(current_scroll, scroll_y_range - height))  # ensure safe value
 
-        '''print(trace_width)
-        self.GetParent().h_scroll.SetScrollbar(-self.pan_x, 400, trace_width, 100)
-        self.GetParent().v_scroll.SetScrollbar(-self.pan_y, 100, trace_height, 100)
-        self.SetVirtualSize((trace_width, trace_height))'''
+            if not hasattr(self, 'last_scroll_y_range') or self.last_scroll_y_range != scroll_y_range:
+                self.v_scroll.SetScrollbar(current_scroll, height, scroll_y_range, height)
+                self.last_scroll_y_range = scroll_y_range
+            else:
+                self.v_scroll.SetThumbPosition(current_scroll)
+
         # Draw a all trace signals
         j = 0
         for key in self.monitors.monitors_dictionary:
@@ -157,7 +156,7 @@ class MyGLCanvas(wxcanvas.GLCanvas):
             GL.glColor3f(0.0, 0.0, 1.0)
             GL.glBegin(GL.GL_LINE_STRIP)
 
-            y_base = padding_y + (j + 1) * signal_height - 10
+            y_base = height - padding_y - (j + 0) * signal_height - 50
             y_high = y_base + 20
 
             for i, sig in enumerate(trace):
@@ -171,18 +170,17 @@ class MyGLCanvas(wxcanvas.GLCanvas):
                 GL.glVertex2f(x, y)
                 GL.glVertex2f(x_next, y)
             GL.glEnd()
-            print(x_next)
 
             # Draw time axis below trace
             GL.glColor3f(0.6, 0.6, 0.6)
             axis_y = y_base - 5
             GL.glBegin(GL.GL_LINES)
             GL.glVertex2f(padding_x, axis_y)
-            GL.glVertex2f(width-padding_x, axis_y)
+            GL.glVertex2f(x_next, axis_y)
             GL.glEnd()
 
             # Draw ticks and labels
-            for i in range(len(trace)):
+            for i in range(len(trace)+1):
                 tick_x = padding_x + i * x_step
                 GL.glBegin(GL.GL_LINES)
                 GL.glVertex2f(tick_x, axis_y - 3)
@@ -372,7 +370,6 @@ class Gui(wx.Frame):
         #self.canvas_scroll.SetScrollRate(10, 10)
         #self.canvas_scroll.SetupScrolling()
          # Set minimum size for scrolling
-        self.canvas = MyGLCanvas(self, devices, monitors, names)
         #canvas_sizer = wx.BoxSizer(wx.VERTICAL)
         #canvas_sizer.Add(self.canvas, 1, wx.EXPAND)
         #self.canvas_scroll.SetSizer(canvas_sizer)
@@ -381,18 +378,21 @@ class Gui(wx.Frame):
         h_scrollbar = wx.ScrollBar(self, style=wx.SB_HORIZONTAL)
         v_scrollbar = wx.ScrollBar(self, style=wx.SB_VERTICAL)
 
-        canvas_area.Add(self.canvas, 1, wx.EXPAND)
-        canvas_area.Add(h_scrollbar, 0, wx.EXPAND)
         
 
         self.h_scroll = h_scrollbar
         self.v_scroll = v_scrollbar
+        self.canvas = MyGLCanvas(self, devices, monitors, names, self.h_scroll, self.v_scroll)
+
+        canvas_area.Add(self.canvas, 1, wx.EXPAND)
+        canvas_area.Add(h_scrollbar, 0, wx.EXPAND)
 
         self.h_scroll.SetScrollbar(0, 100, 1000, 100)
         self.v_scroll.SetScrollbar(0, 100, 1000, 100)
 
         self.h_scroll.Bind(wx.EVT_SCROLL, self.on_h_scroll)
         self.v_scroll.Bind(wx.EVT_SCROLL, self.on_v_scroll)
+        self.last_scroll_y_range = None
 
 
 
@@ -449,17 +449,6 @@ class Gui(wx.Frame):
         #self.side_sizer.Add(self.device_scroll, 1, wx.EXPAND | wx.ALL, 5)
         self.device_scroll.SetMinSize((150, 450))  # or whatever minimum height you want
         self.side_sizer.Add(self.device_scroll, 0, wx.EXPAND | wx.ALL, 5)
-        '''self.top_controls = wx.BoxSizer(wx.VERTICAL)
-        self.top_controls.Add(self.text, 0, wx.TOP, 10)
-        self.top_controls.Add(self.spin, 0, wx.ALL, 5)
-        self.top_controls.Add(self.run_button, 0, wx.ALL, 5)
-        self.top_controls.Add(self.text_box, 0, wx.ALL, 5)
-        self.top_controls.Add(self.output_text, 0, wx.EXPAND | wx.ALL, 5)
-
-        self.side_sizer.Add(self.top_controls, 0, wx.EXPAND)
-        self.side_sizer.Add(self.device_scroll, 1, wx.EXPAND | wx.ALL, 5)
-        self.device_scroll.SetMinSize((150, 400))'''
-
 
         self.SetSizeHints(600, 680)
         self.SetSizer(self.main_sizer)
@@ -492,10 +481,12 @@ class Gui(wx.Frame):
 
     def on_v_scroll(self, event):
         pos = self.v_scroll.GetThumbPosition()
-        canvas_height = self.canvas.GetSize().height
-        self.canvas.pan_y = -pos
+        max_scroll = self.v_scroll.GetRange() - self.v_scroll.GetThumbSize()
+        pos = max(0, min(pos, max_scroll))  # strict clamp
+        self.canvas.pan_y = pos
         self.canvas.init = False
         self.canvas.Refresh()
+
 
 
     def populate_side_sizer(self):
@@ -567,9 +558,12 @@ class Gui(wx.Frame):
         self.populate_side_sizer()
 
     def on_flip_click(self, device_name, event):
+        self.canvas.Freeze()
         self.monitor_command(device_name)
         self.toggle_switch(device_name)
+        self.zap_command(device_name)
         self.populate_side_sizer()
+        self.canvas.Thaw()
 
     def on_monitor_click(self, device_name, event):
         self.monitor_command(device_name)
