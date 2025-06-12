@@ -56,11 +56,12 @@ class Monitors:
         # monitors_dictionary stores
         # {(device_id, output_id): [signal_list]}
         self.monitors_dictionary = collections.OrderedDict()
+        self.oscilloscope_buffer = {}
 
         [self.NO_ERROR, self.NOT_OUTPUT,
          self.MONITOR_PRESENT] = self.names.unique_error_codes(3)
 
-    def make_monitor(self, device_id, output_id, cycles_completed=0):
+    def make_monitor(self, device_id, output_id, cycles_completed=0, max_len = None):
         """Add the specified signal to the monitors dictionary.
 
         Return NO_ERROR if successful, or the corresponding error if not.
@@ -77,8 +78,12 @@ class Monitors:
             # monitor, then initialise the signal trace with an n-length list
             # of BLANK signals. Otherwise, initialise the trace with an empty
             # list.
-            self.monitors_dictionary[(device_id, output_id)] = [
-                self.devices.BLANK] * cycles_completed
+            if max_len is None:
+                signal_list = [self.devices.BLANK] * cycles_completed
+            else:
+                signal_list = collections.deque([self.devices.BLANK] * cycles_completed, maxlen=max_len)
+
+            self.monitors_dictionary[(device_id, output_id)] = signal_list
             return self.NO_ERROR
 
     def remove_monitor(self, device_id, output_id):
@@ -111,6 +116,14 @@ class Monitors:
             signal_level = self.get_monitor_signal(device_id, output_id)
             self.monitors_dictionary[(device_id,
                                       output_id)].append(signal_level)
+            
+    def record_oscilloscope_signals(self, maxlen=10):
+        for device_id, output_id in self.monitors_dictionary:
+            signal_level = self.get_monitor_signal(device_id, output_id)
+            key = (device_id, output_id)
+            if key not in self.oscilloscope_buffer:
+                self.oscilloscope_buffer[key] = collections.deque(maxlen=maxlen)
+            self.oscilloscope_buffer[key].append(signal_level)
 
     def get_signal_names(self):
         """Return two signal name lists: monitored and not monitored."""
