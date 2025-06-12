@@ -79,8 +79,8 @@ def main(arg_list):
             app = wx.App()
             # Internationalisatiom
             locale = wx.Locale()
-            locale.Init(wx.LANGUAGE_DEFAULT)
-            #locale.Init(wx.LANGUAGE_SPANISH)
+            #locale.Init(wx.LANGUAGE_DEFAULT)
+            locale.Init(wx.LANGUAGE_SPANISH)
             locale.AddCatalogLookupPathPrefix('./locales')
             locale.AddCatalog('lang')
             print(locale.GetName())
