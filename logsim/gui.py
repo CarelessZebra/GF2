@@ -759,6 +759,7 @@ class Gui(wx.Frame):
         with open("Help.txt", "r") as file:
             help_text = file.read()
         self.output_text.SetLabel("")
+        help_text = _("User commands:\n    r N       - run the simulation for N cycles\n    c N       - continue the simulation for N cycles\n    s X N     - set switch X to N (0 or 1)\n    m X       - set a monitor on signal X\n    z X       - zap the monitor on signal X\n    h         - help (this command)\n    q         - quit the program")
         wx.MessageBox(help_text, _("Help"), wx.ICON_INFORMATION | wx.OK)
 
     def monitor_command(self, text):
